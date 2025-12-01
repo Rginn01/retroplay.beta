@@ -1,2485 +1,623 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Pac-Man: Remastered+ (Ultra)</title>
-<style>
-  /* ===========================
-     PAC-MAN REMASTERED+ (ULTRA)
-     Parte 1/6 — Base + Engine
-     =========================== */
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pac-Man Neon Ultra</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      touch-action: none;
+    }
 
-  :root{
-    --bg:#000; --ink:#111; --wall:#00134d; --edge:#0af; --text:#fff; --accent:#ffd700;
-    --hud:#0008; --hud-bd:#fff3; --btn:#0009; --btn-bd:#fff3;
-    --good:#24e17d; --bad:#ff4d6d; --warn:#ffd166;
-  }
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:system-ui, Segoe UI, Roboto, Arial}
-  #game{display:block;width:100vw;height:100vh;background:#000010}
-  .overlay{position:fixed;inset:0;pointer-events:none}
-  .hud{
-    position:fixed;left:50%;transform:translateX(-50%);top:8px;display:flex;gap:10px;align-items:center;z-index:50;
-    color:#fff;text-shadow:0 2px 8px #000c;font-weight:700;font-size:clamp(12px,2.1vw,18px)
-  }
-  .tag{background:var(--hud);border:1px solid var(--hud-bd);padding:.28rem .6rem;border-radius:10px;min-width:10ch;text-align:center}
-  .btn{background:var(--btn);border:1px solid var(--btn-bd);color:#fff;padding:.32rem .72rem;border-radius:10px;cursor:pointer;font-weight:700}
-  .btn:active{transform:translateY(1px)}
-  .panel{
-    position:fixed;top:8px;right:8px;z-index:40;color:#fff;background:var(--hud);border:1px solid var(--hud-bd);
-    border-radius:10px;padding:.6rem .8rem;max-width:min(34vw,380px)
-  }
-  .panel h3{margin:.2rem 0 .5rem;font-size:clamp(14px,2vw,18px)}
-  .panel small{opacity:.8}
-  .list{margin:.2rem 0 .2rem 1rem;padding:0}
-  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
-  .grid{display:grid;gap:.4rem}
-  .k{opacity:.8}
-  .select, .range, .text{
-    background:#000b;color:#fff;border:1px solid #ffffff2d;border-radius:8px;padding:.25rem .4rem
-  }
-  .range{width:160px}
-  .toast{
-    position:fixed;left:50%;transform:translateX(-50%);bottom:10px;z-index:60;color:#fff;background:#000c;border:1px solid #fff3;border-radius:12px;
-    padding:.5rem .8rem;font-weight:700;min-width:24ch;text-align:center;opacity:0;transition:opacity .35s, transform .35s;
-  }
-  .toast.show{opacity:1;transform:translate(-50%,-6px)}
-  .centerMsg{
-    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
-    color:#fff;background:#000c;border:1px solid #fff4;border-radius:14px;
-    padding:.9rem 1.2rem;font-weight:800;letter-spacing:.5px;z-index:70;font-size:clamp(18px,3.5vw,36px);
-    text-shadow:0 2px 8px #000a;box-shadow:0 8px 40px #000a;display:none
-  }
-  .flex{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
-  .muted{opacity:.7}
-  .hl{color:var(--accent)}
-  /* Touch controls (mobile) */
-  .touch{
-    position:fixed;left:8px;bottom:8px;z-index:40;display:none;gap:10px;align-items:center
-  }
-  .stick{
-    width:120px;height:120px;border-radius:50%;background:#0007;border:2px solid #fff3;position:relative;touch-action:none
-  }
-  .nub{
-    width:44px;height:44px;border-radius:50%;background:#fff2;border:2px solid #fff9;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  }
-  .touchBtns{display:flex;flex-direction:column;gap:8px}
-  .tbtn{width:56px;height:56px;border-radius:10px;background:#0007;border:2px solid #fff3;font-size:22px;color:#fff}
-  @media (max-width: 920px){
-    .touch{display:flex}
-    .panel{max-width:48vw}
-    .hud{font-size:clamp(12px,2.5vw,18px)}
-  }
-</style>
+    #game-container {
+      position: relative;
+      box-shadow: 0 0 50px rgba(255, 215, 0, 0.15);
+      border: 2px solid #333;
+      border-radius: 4px;
+      background: #05050a;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #ui-layer {
+      position: absolute;
+      top: 0; left: 0; width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      font-weight: bold;
+      font-size: 20px;
+      text-shadow: 0 0 10px #ffd700;
+      z-index: 10;
+    }
+
+    #overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      backdrop-filter: blur(5px);
+    }
+
+    h1 {
+      font-size: 48px;
+      color: #ffd700;
+      text-transform: uppercase;
+      margin: 0 0 10px;
+      text-shadow: 0 0 20px #ffd700;
+    }
+
+    button {
+      background: transparent;
+      color: #ffd700;
+      border: 2px solid #ffd700;
+      padding: 15px 40px;
+      font-size: 20px;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-weight: bold;
+      transition: 0.2s;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #ffd700;
+      color: #000;
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+    }
+
+    /* Mobile D-Pad */
+    #mobile-controls {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 150px;
+      height: 150px;
+      z-index: 50;
+    }
+    .d-btn {
+      position: absolute;
+      width: 50px; height: 50px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      display: flex; justify-content: center; align-items: center;
+      font-size: 24px; user-select: none; color: #fff;
+    }
+    .d-btn:active { background: rgba(255, 215, 0, 0.3); border-color: #ffd700; }
+    #btn-up { top: 0; left: 50px; }
+    #btn-down { bottom: 0; left: 50px; }
+    #btn-left { top: 50px; left: 0; }
+    #btn-right { top: 50px; right: 0; }
+
+  </style>
 </head>
 <body>
-  <canvas id="game"></canvas>
 
-  <div class="hud" id="hud">
-    <span class="tag" id="hudScore">Score: 0</span>
-    <span class="tag" id="hudLives">Vidas: 3</span>
-    <span class="tag" id="hudLevel">Fase: 1</span>
-    <span class="tag" id="hudMode">Modo: —</span>
-    <button class="btn" id="btnPause">⏸ Pausar</button>
-    <button class="btn" id="btnReset">↺ Reiniciar</button>
+  <div id="game-container">
+    <div id="ui-layer">
+      <div>SCORE: <span id="scoreVal">0</span></div>
+      <div>HIGH: <span id="highVal">0</span></div>
+    </div>
+
+    <div id="overlay">
+      <h1>Pac-Man</h1>
+      <p style="color:#aaa; margin-bottom:10px">Setas / WASD para mover</p>
+      <button id="btn-start">Jogar</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
   </div>
 
-  <div class="panel" id="panelRight">
-    <div class="row" style="justify-content:space-between">
-      <h3>🎛️ Config & Perf</h3>
-      <button class="btn" id="btnConfig">⚙️</button>
-    </div>
-    <div id="configBox" class="grid" style="display:none">
-      <div class="row"><span class="k">Qualidade:</span>
-        <select id="optQuality" class="select">
-          <option value="low">Baixa</option><option value="med" selected>Média</option><option value="high">Alta</option><option value="ultra">Ultra</option>
-        </select>
-      </div>
-      <div class="row"><span class="k">CRT / Bloom:</span>
-        <select id="optPost" class="select">
-          <option value="off">Off</option><option value="crt">CRT</option><option value="glow">Glow</option><option value="both">CRT+Glow</option>
-        </select>
-      </div>
-      <div class="row"><span class="k">Som FX:</span>
-        <input id="optSfx" type="range" class="range" min="0" max="1" step="0.01" value="0.8"/>
-      </div>
-      <div class="row"><span class="k">Música:</span>
-        <input id="optMusic" type="range" class="range" min="0" max="1" step="0.01" value="0.5"/>
-      </div>
-      <div class="row"><span class="k">Vibração:</span>
-        <select id="optVibrate" class="select"><option value="on" selected>On</option><option value="off">Off</option></select>
-      </div>
-      <div class="row"><span class="k">Sensibilidade Analógico:</span>
-        <input id="optStick" type="range" class="range" min="0.2" max="1.2" step="0.05" value="0.65"/>
-      </div>
-      <div class="row"><span class="k">Nome:</span>
-        <input id="optName" class="text" maxlength="16" placeholder="Player"/>
-        <button class="btn" id="btnSaveName">Salvar</button>
-      </div>
-      <div class="row"><button class="btn" id="btnWipe">🗑️ Limpar Saves</button></div>
-      <small class="muted">Dica: teclas P pausa, R reinicia, F alterna filtro CRT/Glow, G mostra FPS, T ativa “ghost cam”.</small>
-    </div>
-
-    <h3 style="margin-top:.6rem">🏆 High Scores</h3>
-    <ol id="hsList" class="list"></ol>
-    <div class="row" style="justify-content:space-between;margin-top:.2rem">
-      <div class="muted">Ranking por Fase</div>
-      <select id="selPhaseRank" class="select"></select>
-    </div>
-    <ol id="phaseList" class="list" style="margin-top:.25rem"></ol>
-    <div class="row" style="margin-top:.6rem">
-      <button class="btn" id="btnReplays">🎥 Replays</button>
-      <button class="btn" id="btnAchievements">🏅 Conquistas</button>
-    </div>
+  <div id="mobile-controls">
+    <div id="btn-up" class="d-btn">▲</div>
+    <div id="btn-left" class="d-btn">◀</div>
+    <div id="btn-right" class="d-btn">▶</div>
+    <div id="btn-down" class="d-btn">▼</div>
   </div>
-
-  <!-- Touch controls -->
-  <div class="touch" id="touchUI">
-    <div class="stick" id="stick"><div class="nub" id="nub"></div></div>
-    <div class="touchBtns">
-      <button class="tbtn" id="tPause">⏸</button>
-      <button class="tbtn" id="tBoost">⚡</button>
-    </div>
-  </div>
-
-  <div class="toast" id="toast"></div>
-  <div class="centerMsg" id="centerMsg"></div>
 
 <script>
-/* =======================================================================
-   PAC-MAN REMASTERED+ (ULTRA) — Parte 1/6
-   Engine, cenas, input, HUD, áudio e save system
-   ======================================================================= */
+(function() {
+  /**
+   * PAC-MAN NEON REMASTERED (Engine refeita do zero)
+   * Grid-based movement, Collision detection, Ghost AI, Power Pellets.
+   */
 
-'use strict';
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Configurações do Grid
+  const TILE_SIZE = 20;
+  const ROWS = 21;
+  const COLS = 19;
+  
+  canvas.width = COLS * TILE_SIZE;
+  canvas.height = ROWS * TILE_SIZE;
 
-/* ===== Canvas & Context ===== */
-const CANVAS = document.getElementById('game');
-const CTX = CANVAS.getContext('2d', { alpha: false });
-let W = innerWidth, H = innerHeight;
-function resize(){ W = innerWidth; H = innerHeight; CANVAS.width=W; CANVAS.height=H; }
-resize(); addEventListener('resize', resize);
-
-/* ===== HUD Elements ===== */
-const HUD = {
-  score: document.getElementById('hudScore'),
-  lives: document.getElementById('hudLives'),
-  level: document.getElementById('hudLevel'),
-  mode:  document.getElementById('hudMode'),
-  pause: document.getElementById('btnPause'),
-  reset: document.getElementById('btnReset'),
-};
-const PANEL = {
-  box: document.getElementById('panelRight'),
-  configBtn: document.getElementById('btnConfig'),
-  configBox: document.getElementById('configBox'),
-  optQuality: document.getElementById('optQuality'),
-  optPost: document.getElementById('optPost'),
-  optSfx: document.getElementById('optSfx'),
-  optMusic: document.getElementById('optMusic'),
-  optVibrate: document.getElementById('optVibrate'),
-  optStick: document.getElementById('optStick'),
-  optName: document.getElementById('optName'),
-  btnSaveName: document.getElementById('btnSaveName'),
-  btnWipe: document.getElementById('btnWipe'),
-  hsList: document.getElementById('hsList'),
-  selPhaseRank: document.getElementById('selPhaseRank'),
-  phaseList: document.getElementById('phaseList'),
-  btnReplays: document.getElementById('btnReplays'),
-  btnAchievements: document.getElementById('btnAchievements'),
-};
-const TOUCH = {
-  ui: document.getElementById('touchUI'),
-  stick: document.getElementById('stick'),
-  nub: document.getElementById('nub'),
-  pause: document.getElementById('tPause'),
-  boost: document.getElementById('tBoost'),
-};
-const TOAST = document.getElementById('toast');
-const CENTER = document.getElementById('centerMsg');
-
-/* ===== Utils ===== */
-const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
-const lerp=(a,b,t)=>a+(b-a)*t;
-const rnd=(a=1,b=0)=>b+Math.random()*(a-b);
-const rndi=(a=1,b=0)=>Math.floor(rnd(a+1,b));
-const nowMs=()=>performance.now();
-function showCenter(text,sec=1.4){
-  CENTER.textContent=text; CENTER.style.display='block';
-  setTimeout(()=>CENTER.style.display='none', sec*1000);
-}
-let toastTimer=null;
-function toast(msg,sec=1.8){
-  TOAST.textContent=msg;
-  TOAST.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>TOAST.classList.remove('show'), sec*1000);
-}
-
-/* ===== Save System ===== */
-const STORAGE_PREFIX = 'pmultra_';
-const LS = {
-  get(k,def=null){ try{ const v=localStorage.getItem(STORAGE_PREFIX+k); return v? JSON.parse(v) : def; }catch{ return def; } },
-  set(k,val){ try{ localStorage.setItem(STORAGE_PREFIX+k, JSON.stringify(val)); }catch{} },
-  del(k){ try{ localStorage.removeItem(STORAGE_PREFIX+k); }catch{} },
-  clearAll(){ Object.keys(localStorage).forEach(k=>{ if(k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k); }); }
-};
-// profiles
-const SAVE = {
-  name: LS.get('player_name','Player'),
-  options: LS.get('options',{ quality:'med', post:'off', sfx:0.8, music:0.5, vibrate:true, stick:0.65 }),
-  hiscores: LS.get('hiscores',[]), // top10 global
-  phaseScores: LS.get('phase_scores',{}), // {phase: [{name,score,date}]}
-  replays: LS.get('replays',[]), // array de replay
-  achievements: LS.get('achievements',{}) // flags
-};
-function commit(){
-  LS.set('player_name', SAVE.name);
-  LS.set('options', SAVE.options);
-  LS.set('hiscores', SAVE.hiscores);
-  LS.set('phase_scores', SAVE.phaseScores);
-  LS.set('replays', SAVE.replays);
-  LS.set('achievements', SAVE.achievements);
-}
-
-/* ===== Config UI bindings ===== */
-function refreshOptionsUI(){
-  PANEL.optQuality.value = SAVE.options.quality;
-  PANEL.optPost.value = SAVE.options.post;
-  PANEL.optSfx.value = SAVE.options.sfx;
-  PANEL.optMusic.value = SAVE.options.music;
-  PANEL.optVibrate.value = SAVE.options.vibrate? 'on':'off';
-  PANEL.optStick.value = SAVE.options.stick;
-  PANEL.optName.value = SAVE.name||'Player';
-}
-refreshOptionsUI();
-
-PANEL.configBtn.onclick=()=>{
-  const show = PANEL.configBox.style.display !== 'grid';
-  PANEL.configBox.style.display = show? 'grid':'none';
-};
-PANEL.optQuality.onchange = e=>{ SAVE.options.quality=e.target.value; commit(); toast('Qualidade: '+e.target.value.toUpperCase()); };
-PANEL.optPost.onchange    = e=>{ SAVE.options.post=e.target.value; commit(); toast('Filtro: '+e.target.value.toUpperCase()); };
-PANEL.optSfx.oninput      = e=>{ SAVE.options.sfx=+e.target.value; commit(); };
-PANEL.optMusic.oninput    = e=>{ SAVE.options.music=+e.target.value; music.setVolume(SAVE.options.music); commit(); };
-PANEL.optVibrate.onchange = e=>{ SAVE.options.vibrate=(e.target.value==='on'); commit(); };
-PANEL.optStick.oninput    = e=>{ SAVE.options.stick=+e.target.value; commit(); };
-PANEL.btnSaveName.onclick = ()=>{ const v=PANEL.optName.value.trim()||'Player'; SAVE.name=v.slice(0,16); commit(); toast('Nome salvo: '+SAVE.name); };
-PANEL.btnWipe.onclick     = ()=>{ if(confirm('Apagar todos os saves?')){ LS.clearAll(); location.reload(); } };
-
-/* ===== Highscore & Phase ranking (UI) ===== */
-function renderHiscores(){
-  const hs = (SAVE.hiscores||[]).slice(0,10);
-  PANEL.hsList.innerHTML = hs.length? hs.map((s,i)=>`<li>#${i+1} — ${s.name||'Player'}: ${s.score} <small class="muted">(F${s.level||1})</small></li>`).join('') : '<li>Nenhum registro ainda.</li>';
-}
-function saveHiscore(name,score,level){
-  const arr = SAVE.hiscores||[];
-  arr.push({name,score,level,date:Date.now()});
-  arr.sort((a,b)=>b.score-a.score);
-  SAVE.hiscores = arr.slice(0,10);
-  commit(); renderHiscores();
-}
-renderHiscores();
-
-function renderPhaseSelect(currentLevel=1){
-  const db = SAVE.phaseScores||{};
-  const maxPhase = Math.max(currentLevel, ...Object.keys(db).map(n=>+n), 1);
-  PANEL.selPhaseRank.innerHTML = Array.from({length:maxPhase},(_,i)=>i+1).map(n=>`<option value="${n}">Fase ${n}</option>`).join('');
-  PANEL.selPhaseRank.value = String(currentLevel);
-}
-function renderPhaseRank(level=1){
-  const db = SAVE.phaseScores||{};
-  const arr = (db[level]||[]).slice(0,10);
-  PANEL.phaseList.innerHTML = arr.length? arr.map((s,i)=>`<li>#${i+1} — ${s.name||'Player'}: ${s.score}</li>`).join('') : '<li>Sem registros nesta fase.</li>';
-}
-function savePhaseRank(level,name,score){
-  const db = SAVE.phaseScores||{};
-  db[level]=db[level]||[];
-  db[level].push({name,score,date:Date.now()});
-  db[level].sort((a,b)=>b.score-a.score);
-  db[level]=db[level].slice(0,10);
-  SAVE.phaseScores = db; commit();
-  renderPhaseSelect(level); renderPhaseRank(level);
-}
-PANEL.selPhaseRank.onchange = e=> renderPhaseRank(+e.target.value);
-
-/* ===== Input: teclado + gamepad + toque ===== */
-const Input = {
-  left:false,right:false,up:false,down:false, boost:false, pause:false,
-  any(){ return this.left||this.right||this.up||this.down; },
-  reset(){ this.left=this.right=this.up=this.down=this.boost=this.pause=false; }
-};
-const KEYMAP = {
-  ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down',
-  a:'left', d:'right', w:'up', s:'down',
-  A:'left', D:'right', W:'up', S:'down',
-  ' ':'boost', Shift:'boost', Control:'boost',
-  p:'pause', P:'pause'
-};
-addEventListener('keydown', e=>{
-  const k = KEYMAP[e.key];
-  if(k){ Input[k]=true; e.preventDefault(); }
-  if(e.key==='r' || e.key==='R'){ Scenes.resetRunRequested=true; e.preventDefault(); }
-  if(e.key==='f' || e.key==='F'){ cyclePost(); e.preventDefault(); }
-  if(e.key==='g' || e.key==='G'){ Debug.showFps=!Debug.showFps; e.preventDefault(); }
-  if(e.key==='t' || e.key==='T'){ Debug.ghostCam=!Debug.ghostCam; e.preventDefault(); }
-});
-addEventListener('keyup', e=>{
-  const k = KEYMAP[e.key];
-  if(k){ Input[k]=false; e.preventDefault(); }
-});
-
-/* Gamepad polling */
-let gamepadIndex=null;
-function pollGamepad(){
-  const pads = navigator.getGamepads?.()||[];
-  if(gamepadIndex==null){
-    for(let i=0;i<pads.length;i++) if(pads[i]){ gamepadIndex=i; break; }
+  // Ajuste de escala para telas
+  function resize() {
+    const scale = Math.min(window.innerWidth / canvas.width, window.innerHeight / canvas.height) * 0.9;
+    document.getElementById('game-container').style.transform = `scale(${scale})`;
   }
-  const gp = pads[gamepadIndex];
-  if(!gp) return;
-  const axX = gp.axes?.[0]||0;
-  const axY = gp.axes?.[1]||0;
-  const dead = 0.25;
-  Input.left = axX<-dead; Input.right = axX>dead;
-  Input.up = axY<-dead; Input.down = axY>dead;
-  Input.boost = (gp.buttons?.[0]?.pressed||gp.buttons?.[1]?.pressed||gp.buttons?.[2]?.pressed);
-  Input.pause = gp.buttons?.[9]?.pressed||false;
-}
+  window.addEventListener('resize', resize);
+  resize();
 
-/* Touch analog */
-(function initTouch(){
-  let active=false, start={x:0,y:0};
-  const rect=()=>TOUCH.stick.getBoundingClientRect();
-  TOUCH.stick.addEventListener('pointerdown',e=>{
-    active=true; start.x=e.clientX; start.y=e.clientY; TOUCH.stick.setPointerCapture(e.pointerId);
-  });
-  TOUCH.stick.addEventListener('pointermove',e=>{
-    if(!active) return;
-    const dx = e.clientX-start.x, dy=e.clientY-start.y;
-    const rad = 42;
-    const len = Math.hypot(dx,dy);
-    const cl = Math.min(len, rad);
-    const kx = (dx/Math.max(1,len))*cl;
-    const ky = (dy/Math.max(1,len))*cl;
-    TOUCH.nub.style.transform=`translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
-    const sens = SAVE.options.stick||0.65;
-    Input.left = dx<-20*sens; Input.right = dx>20*sens;
-    Input.up = dy<-20*sens; Input.down = dy>20*sens;
-  });
-  const end=()=>{ active=false; TOUCH.nub.style.transform='translate(-50%,-50%)'; Input.left=Input.right=Input.up=Input.down=false; };
-  TOUCH.stick.addEventListener('pointerup',end);
-  TOUCH.stick.addEventListener('pointercancel',end);
-  TOUCH.pause.onclick=()=>Scenes.togglePause();
-  TOUCH.boost.onclick=()=>Input.boost=true;
-})();
+  // Detectar Mobile
+  if('ontouchstart' in window) {
+    document.getElementById('mobile-controls').style.display = 'block';
+  }
 
-/* ===== Audio (WebAudio) ===== */
-let AC=null;
-function ensureAC(){ if(!AC){ AC=new (window.AudioContext||window.webkitAudioContext)(); music.init(); } }
-const volume = { sfx: SAVE.options.sfx??0.8, music: SAVE.options.music??0.5 };
-/* basic synth */
-function beep(freq=440,dur=.08,type='sine',gain=.06,when=0){
-  if(!AC) return;
-  const t0=AC.currentTime+when;
-  const o=AC.createOscillator(), g=AC.createGain();
-  o.type=type; o.frequency.value=freq;
-  g.gain.setValueAtTime(0,t0);
-  g.gain.linearRampToValueAtTime(gain*volume.sfx,t0+.01);
-  g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
-  o.connect(g).connect(AC.destination); o.start(t0); o.stop(t0+dur+.02);
-}
-const sfx = {
-  pellet(){ beep(1200,.04,'square',.03); },
-  power(){ beep(600,.10,'triangle',.05); beep(900,.10,'triangle',.04,.02); },
-  fruit(){ beep(800,.08,'square',.05); beep(1200,.08,'square',.04,.05); },
-  ghost(){ beep(500,.12,'sawtooth',.05); beep(350,.12,'sawtooth',.05,.08); },
-  death(){ for(let i=0;i<6;i++) beep(700-i*90,.09,'triangle',.06,i*.07); },
-  start(){ beep(880,.12,'square',.06); beep(660,.12,'square',.05,.12); beep(990,.22,'triangle',.07,.24); }
-};
-/* simple “chip-music” generator */
-const music = (()=>{
-  let master=null, seq=[], bpm=112, idx=0, t=0, running=false, gainNode=null;
-  function init(){
-    if(!AC) return;
-    master = AC.createGain(); master.gain.value = 0.0;
-    master.connect(AC.destination);
-    gainNode = master;
-  }
-  function setVolume(v){ if(gainNode) gainNode.gain.linearRampToValueAtTime(clamp(v,0,1), AC.currentTime+.05); volume.music=v; }
-  function setSeq(newSeq, newBpm=112){
-    seq=newSeq||[]; bpm=newBpm; idx=0; t=0;
-  }
-  function play(){ if(!AC) return; running=true; schedule(); }
-  function stop(){ running=false; }
-  function schedule(){
-    if(!running||!AC) return;
-    const secondsPerBeat = 60/bpm;
-    const ahead = 0.3;
-    const ct = AC.currentTime;
-    while(t < ct + ahead){
-      const note = seq[idx%seq.length];
-      if(note){
-        const when = t;
-        if(note.freq){
-          const o=AC.createOscillator(), g=AC.createGain();
-          o.type=note.type||'square'; o.frequency.value=note.freq;
-          g.gain.value=0;
-          g.gain.linearRampToValueAtTime((note.vol??0.05)*volume.music, when+.01);
-          g.gain.exponentialRampToValueAtTime(0.0001, when + (note.len??.25)*secondsPerBeat);
-          o.connect(g).connect(gainNode); o.start(when); o.stop(when + (note.len??.25)*secondsPerBeat+.02);
-        }
+  // Mapa (1 = Parede, 0 = Dot, 2 = Vazio, 3 = Power Pellet, 4 = Porta Fantasma)
+  // Layout clássico simplificado para caber no grid
+  const mapDesign = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+    [1,3,1,1,1,0,1,1,0,1,0,1,1,0,1,1,1,3,1],
+    [1,0,1,1,1,0,1,1,0,1,0,1,1,0,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,0,1],
+    [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+    [1,1,1,1,0,1,1,1,2,1,2,1,1,1,0,1,1,1,1],
+    [2,2,2,1,0,1,2,2,2,2,2,2,2,1,0,1,2,2,2],
+    [1,1,1,1,0,1,2,1,1,4,1,1,2,1,0,1,1,1,1],
+    [2,2,2,2,0,2,2,1,2,2,2,1,2,2,0,2,2,2,2], // Túnel
+    [1,1,1,1,0,1,2,1,1,1,1,1,2,1,0,1,1,1,1],
+    [2,2,2,1,0,1,2,2,2,2,2,2,2,1,0,1,2,2,2],
+    [1,1,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
+    [1,3,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,3,1],
+    [1,1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,0,1,1],
+    [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2] // Rodapé vazio
+  ];
+
+  // Estado do Jogo
+  let walls = [];
+  let dots = [];
+  let powerPellets = [];
+  let score = 0;
+  let highScore = localStorage.getItem('pacman_high') || 0;
+  let gameRunning = false;
+  let animationId;
+  let powerModeTime = 0;
+  let wakaTimer = 0;
+
+  // Áudio Procedural
+  const Audio = (function(){
+    let ctx;
+    function init(){ if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)(); }
+    
+    function playTone(freq, type, dur, vol=0.1) {
+      if(!ctx) return;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, ctx.currentTime);
+      g.gain.setValueAtTime(vol, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + dur);
+    }
+
+    function waka() {
+      if(!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(100, now);
+      osc.frequency.linearRampToValueAtTime(300, now + 0.1);
+      osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.linearRampToValueAtTime(0, now + 0.2);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(); osc.stop(now + 0.2);
+    }
+    
+    return { init, playTone, waka };
+  })();
+
+  // Classes
+  class Entity {
+    constructor(x, y, color) {
+      this.x = x;
+      this.y = y;
+      this.color = color;
+      this.dir = {x:0, y:0};
+      this.nextDir = {x:0, y:0};
+      this.speed = 0.08; // Tiles por frame (aprox)
+      this.tileX = x;
+      this.tileY = y;
+      this.progress = 0; // 0 a 1 entre tiles
+    }
+
+    draw() {
+      const px = (this.tileX + this.progress * this.dir.x) * TILE_SIZE + TILE_SIZE/2;
+      const py = (this.tileY + this.progress * this.dir.y) * TILE_SIZE + TILE_SIZE/2;
+      
+      ctx.fillStyle = this.color;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = this.color;
+      ctx.beginPath();
+      ctx.arc(px, py, TILE_SIZE/2 - 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    move() {
+      // Avança progresso
+      if(this.dir.x !== 0 || this.dir.y !== 0) {
+        this.progress += this.speed;
       }
-      t += (note?.len??.25)*secondsPerBeat;
-      idx++;
-    }
-    setTimeout(schedule, 50);
-  }
-  return {init, setVolume, setSeq, play, stop};
-})();
-const BG_LOOP = [
-  {freq:440,len:.5,type:'triangle',vol:.03},
-  {freq:660,len:.25,type:'square',vol:.025},
-  {freq:0,len:.25},
-  {freq:495,len:.5,type:'triangle',vol:.03},
-  {freq:0,len:.25},
-  {freq:660,len:.25,type:'square',vol:.025},
-];
 
-/* ===== Debug ===== */
-const Debug = {
-  showFps:false,
-  ghostCam:false,
-  fps:0,_last:nowMs(),_frames:0,
-  tick(){
-    this._frames++;
-    const t=nowMs();
-    if(t-this._last>500){
-      this.fps = Math.round(this._frames*1000/(t-this._last));
-      this._frames=0; this._last=t;
-    }
-  },
-  draw(){
-    if(!this.showFps) return;
-    CTX.save();
-    CTX.fillStyle='#0f0'; CTX.font='bold 14px monospace';
-    CTX.fillText(this.fps+' FPS', 8, 18);
-    CTX.restore();
-  }
-};
-
-/* ===== Scene Manager ===== */
-const Scenes = {
-  current:null, paused:false, resetRunRequested:false,
-  start(scene){ this.current = scene; scene?.enter?.(); },
-  togglePause(){
-    this.paused = !this.paused;
-    HUD.pause.textContent = this.paused? '▶️ Retomar' : '⏸ Pausar';
-    if(this.paused) music.stop(); else music.play();
-  },
-  resetRun(){ this.resetRunRequested=false; this.current?.reset?.(); }
-};
-HUD.pause.onclick = ()=>Scenes.togglePause();
-HUD.reset.onclick = ()=>Scenes.resetRunRequested=true;
-
-/* ===== Core “World” State (placeholders p/ Parte 2+) ===== */
-const WORLD = {
-  level:1,
-  score:0,
-  lives:3,
-  modeName:'—',
-  setHud(){
-    HUD.score.textContent = `Score: ${this.score}`;
-    HUD.lives.textContent = `Vidas: ${this.lives}`;
-    HUD.level.textContent = `Fase: ${this.level}`;
-    HUD.mode.textContent  = `Modo: ${this.modeName}`;
-  },
-  addScore(x){ this.score+=x; this.setHud(); },
-  loseLife(){ this.lives--; this.setHud(); if(this.lives<=0) GameOver.trigger(); }
-};
-WORLD.setHud();
-
-/* ===== GameOver handler ===== */
-const GameOver = {
-  trigger(){
-    Scenes.paused=true; music.stop(); sfx.death();
-    setTimeout(()=>{
-      const name = prompt(`Game Over!\nScore: ${WORLD.score}\nFase: ${WORLD.level}\n\nSeu nome para os Rankings:`, SAVE.name||'Player') || 'Player';
-      SAVE.name = name.slice(0,16); commit();
-      saveHiscore(SAVE.name, WORLD.score, WORLD.level);
-      savePhaseRank(WORLD.level, SAVE.name, WORLD.score);
-      toast('Registro salvo!');
-      Scenes.paused=false;
-      Scenes.resetRunRequested=true;
-    }, 150);
-  }
-};
-
-/* ===== Simple Camera (hook futuro) ===== */
-const Camera = {
-  x:0,y:0,zoom:1,
-  begin(){ CTX.save(); CTX.translate(Math.round(W/2 - this.x*this.zoom), Math.round(H/2 - this.y*this.zoom)); CTX.scale(this.zoom,this.zoom); },
-  end(){ CTX.restore(); }
-};
-
-/* ===== Pós-processo (flags; shaders entram depois) ===== */
-function cyclePost(){
-  const order = ['off','crt','glow','both'];
-  let i = order.indexOf(SAVE.options.post||'off');
-  i = (i+1)%order.length;
-  SAVE.options.post = order[i]; commit();
-  toast('Filtro: '+order[i].toUpperCase());
-}
-
-/* ===== Scene: Boot ===== */
-const SceneBoot = {
-  enter(){
-    WORLD.level=1; WORLD.score=0; WORLD.lives=3; WORLD.modeName='Boot';
-    WORLD.setHud();
-    document.body.addEventListener('pointerdown', ()=>ensureAC(), {once:true});
-    document.body.addEventListener('keydown', ()=>ensureAC(), {once:true});
-    showCenter('Pac-Man: Remastered+');
-    setTimeout(()=>Scenes.start(SceneRun), 900);
-  }
-};
-
-/* ===== SceneRun (placeholder, será substituída na Parte 2) ===== */
-const SceneRun = {
-  t:0,
-  enter(){
-    this.t=0; Scenes.paused=false; WORLD.modeName='Ready!';
-    WORLD.setHud();
-    music.setSeq(BG_LOOP, 108);
-    if(AC) music.play();
-    sfx.start();
-    renderPhaseSelect(WORLD.level);
-    renderPhaseRank(WORLD.level);
-  },
-  reset(){
-    WORLD.level=1; WORLD.score=0; WORLD.lives=3; WORLD.modeName='Ready!';
-    WORLD.setHud(); showCenter('Novo Jogo'); this.t=0;
-    if(AC){ music.stop(); music.play(); }
-  },
-  update(dt){
-    this.t+=dt;
-    pollGamepad();
-    if(Input.pause){ Scenes.togglePause(); Input.pause=false; }
-    if(Input.any()) WORLD.modeName='Play';
-    if((this.t*3|0)%6===0 && Input.any()){
-      WORLD.addScore(1); if(navigator.vibrate && SAVE.options.vibrate) navigator.vibrate(5);
-      sfx.pellet();
-    }
-    if(Input.boost){ WORLD.addScore(2); sfx.fruit(); }
-    if(Scenes.resetRunRequested){ this.reset(); Scenes.resetRunRequested=false; }
-  },
-  draw(){
-    CTX.fillStyle='#000014'; CTX.fillRect(0,0,W,H);
-    const sz=18, m=12;
-    CTX.strokeStyle='#00134d'; CTX.lineWidth=1;
-    for(let x=m;x<W-m;x+=sz){ CTX.beginPath(); CTX.moveTo(x,m); CTX.lineTo(x,H-m); CTX.stroke(); }
-    for(let y=m;y<H-m;y+=sz){ CTX.beginPath(); CTX.moveTo(m,y); CTX.lineTo(W-m,y); CTX.stroke(); }
-    CTX.fillStyle='#fff2'; CTX.font='700 34px system-ui, Arial';
-    CTX.textAlign='center';
-    CTX.fillText('Parte 1 — Engine+HUD prontos', W/2, 64);
-  }
-};
-
-/* ===== Main Loop ===== */
-let last=nowMs()/1000;
-function frame(){
-  const t=nowMs()/1000, dt=clamp(t-last,0,0.05); last=t;
-  if(!Scenes.paused) Scenes.current?.update?.(dt);
-  Scenes.current?.draw?.();
-  Debug.tick(); Debug.draw();
-  requestAnimationFrame(frame);
-}
-Scenes.start(SceneBoot);
-frame();
-
-/* ===== Buttons ===== */
-HUD.pause.addEventListener('click', ()=>Scenes.togglePause());
-HUD.reset.addEventListener('click', ()=>Scenes.resetRunRequested=true);
-
-/* ===== Mobile hint ===== */
-if(/Android|iPhone|iPad/i.test(navigator.userAgent)){ toast('Dica: use o analógico/touch e o botão ⚡ para boost.'); TOUCH.ui.style.display='flex'; }
-</script>
-<!-- ===========================
-     PAC-MAN REMASTERED+ (ULTRA)
-     Parte 2/6 — Maze + Movimento + Comida
-     =========================== -->
-<script>
-'use strict';
-
-/*** ===== Grid / Maze ===== ***/
-const MAZE = {
-  // 1=parede, 0=pellet, 2=corredor vazio, 3=power-pellet, 4=porta do ninho
-  raw: [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,1,0,0,0,3,0,0,4,0,0,0,3,0,0,0,1,0,0,0,0,1],
-    [1,0,1,1,1,0,1,0,1,1,1,1,2,1,2,1,1,1,0,1,0,1,1,1,0,0,1],
-    [1,0,1,2,1,0,0,0,0,2,0,0,2,2,2,2,2,0,0,0,0,1,2,1,0,0,1],
-    [1,0,1,2,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,2,1,0,0,1],
-    [1,0,1,0,0,0,0,0,0,2,0,0,2,0,2,0,0,2,0,0,0,0,0,1,0,0,1],
-    [1,0,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,0,0,1],
-    [1,3,0,0,0,0,0,0,0,2,0,0,2,2,2,2,2,0,0,0,0,0,0,0,0,3,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-  ],
-  ROWS: 0, COLS: 0,
-  TILE: 0, offX: 0, offY: 0,
-  rDot: 0, rPower: 0,
-  inY(y){ return y>=0 && y<this.ROWS; },
-  wrapX(x){ return (x<0? this.COLS-1 : x>=this.COLS? 0 : x); },
-  isDoor(x,y){ return this.raw[y]?.[x]===4; },
-  isWall(x,y){
-    if(!this.inY(y)) return true;
-    const v = this.raw[y][this.wrapX(x)];
-    return v===1;
-  },
-  cx(gx){ return this.offX + gx*this.TILE + this.TILE/2; },
-  cy(gy){ return this.offY + gy*this.TILE + this.TILE/2; },
-  layout(){
-    this.ROWS = this.raw.length;
-    this.COLS = this.raw[0].length;
-    this.TILE = Math.floor(Math.min(W,H)/28);
-    this.offX = (W - this.TILE*this.COLS)/2;
-    this.offY = (H - this.TILE*this.ROWS)/2 + this.TILE*.20;
-    this.rDot = Math.max(2, this.TILE*.11);
-    this.rPower = Math.max(4, this.TILE*.22);
-  }
-};
-MAZE.layout();
-addEventListener('resize', ()=>MAZE.layout());
-
-/*** ===== Pellets / Power / Frutas ===== ***/
-const Dots = {
-  pellets: new Set(), powers: new Set(),
-  total: 0, eaten: 0,
-  key(x,y){ return `${x},${y}`; },
-  reset(){
-    this.pellets.clear(); this.powers.clear(); this.total=0; this.eaten=0;
-    for(let y=0;y<MAZE.ROWS;y++) for(let x=0;x<MAZE.COLS;x++){
-      const v = MAZE.raw[y][x];
-      if(v===0){ this.pellets.add(this.key(x,y)); this.total++; }
-      if(v===3){ this.powers.add(this.key(x,y)); this.total++; }
-    }
-  },
-  eatAt(x,y){
-    const k=this.key(x,y);
-    if(this.pellets.delete(k)){ this.eaten++; WORLD.addScore(10); if(navigator.vibrate && SAVE.options.vibrate) navigator.vibrate(4); sfx.pellet(); return 'dot'; }
-    if(this.powers.delete(k)){ this.eaten++; WORLD.addScore(50); sfx.power(); return 'power'; }
-    return null;
-  }
-};
-Dots.reset();
-
-const Fruits = {
-  list: [], // {x,y,ttl,value}
-  spawned: 0, valA: 100, valB: 300,
-  spawn(v){ this.list.push({x:13,y:5,ttl:9,value:v}); this.spawned++; sfx.fruit(); toast(`🍒 Fruta apareceu! (+${v})`,1.2); },
-  maybeSpawn(){
-    if(!Dots.total) return;
-    const ratio = Dots.eaten / Dots.total;
-    if(this.spawned===0 && ratio>=.30) this.spawn(this.valA);
-    if(this.spawned===1 && ratio>=.70) this.spawn(this.valB);
-  },
-  update(dt){
-    for(let i=this.list.length-1;i>=0;i--){
-      this.list[i].ttl -= dt;
-      if(this.list[i].ttl<=0) this.list.splice(i,1);
-    }
-  },
-  tryEat(px,py){
-    for(let i=this.list.length-1;i>=0;i--){
-      const f=this.list[i];
-      const d = Math.hypot(MAZE.cx(f.x)-px, MAZE.cy(f.y)-py);
-      if(d < MAZE.TILE*0.6){ WORLD.addScore(f.value); sfx.fruit(); this.list.splice(i,1); toast(`+${f.value} 🍒`,1.0); }
-    }
-  },
-  draw(){
-    CTX.save();
-    for(const f of this.list){
-      CTX.translate(MAZE.cx(f.x), MAZE.cy(f.y));
-      CTX.fillStyle="#e11"; CTX.beginPath(); CTX.arc(0,0,MAZE.TILE*.22,0,Math.PI*2); CTX.fill();
-      CTX.strokeStyle="#2c2"; CTX.lineWidth=2; CTX.beginPath();
-      CTX.moveTo(-MAZE.TILE*.05,-MAZE.TILE*.1); CTX.quadraticCurveTo(0,-MAZE.TILE*.45, MAZE.TILE*.12,-MAZE.TILE*.28); CTX.stroke();
-      CTX.setTransform(1,0,0,1,0,0);
-    }
-    CTX.restore();
-  }
-};
-
-/*** ===== Direções / Actor base ===== ***/
-const DIR = {
-  left:{x:-1,y:0,a:Math.PI}, right:{x:1,y:0,a:0},
-  up:{x:0,y:-1,a:-Math.PI/2}, down:{x:0,y:1,a:Math.PI/2}
-};
-const isOpp=(a,b)=> a&&b&&(a.x===-b.x&&a.y===-b.y);
-// ===== Tolerâncias de movimento/virada =====
-const TURN_WINDOW = 0.18;   // fração do tile perto do centro onde a virada é aceita (0..0.5)
-const SNAP_EPS     = 1e-4;  // epsilon numérico
-
-
-class Actor {
-  constructor(gx,gy,speedTiles){
-    this.gx=gx; this.gy=gy;
-    this.dir=DIR.left;
-    this.nextDir=null;
-    this.speed = speedTiles;   // tiles/s
-    this.progress = 0;         // 0..1 (centro -> centro)
-    this.allowDoor = false;    // Pac: false, Ghost: true
-  }
-
-  canGo(d){
-    if(!d) return false;
-    const nx = MAZE.wrapX(this.gx + d.x), ny = this.gy + d.y;
-    if(MAZE.isDoor(nx,ny) && !this.allowDoor) return false;
-    return !MAZE.isWall(nx,ny);
-  }
-
-  pixel(){
-    const px = MAZE.cx(this.gx) + (this.dir?.x||0)*this.progress*MAZE.TILE;
-    const py = MAZE.cy(this.gy) + (this.dir?.y||0)*this.progress*MAZE.TILE;
-    return {px,py};
-  }
-
-  reverse(){
-    if(!this.dir) return;
-    this.dir = { x:-this.dir.x, y:-this.dir.y, a:(this.dir.a+Math.PI)%(Math.PI*2) };
-    this.progress = 1 - this.progress; // mantém posição contínua
-  }
-
-  // tenta virar a partir do "centro" com tolerância
-  tryTurnFromCenter(){
-    if(!this.nextDir) return false;
-    if(this.progress > TURN_WINDOW && this.progress < 1 - TURN_WINDOW) return false;
-
-    // Se estamos muito perto do centro de saída (progress pequeno), vire usando a célula atual.
-    // Se estamos muito perto de entrar na próxima célula, primeiro avance, depois vire.
-    if(this.progress >= 1 - TURN_WINDOW){
-      const fx = MAZE.wrapX(this.gx + (this.dir?.x||0));
-      const fy = this.gy + (this.dir?.y||0);
-      // Só avance se não for parede/porta proibida
-      if(!(MAZE.isDoor(fx,fy) && !this.allowDoor) && !MAZE.isWall(fx,fy)){
-        this.gx = fx; this.gy = fy;
+      // Chegou no centro do tile?
+      if(this.progress >= 1) {
+        this.tileX += this.dir.x;
+        this.tileY += this.dir.y;
         this.progress = 0;
-      } else {
-        // travou contra parede; forçar snap ao centro e permitir virar se possível
-        this.progress = 0;
+        
+        // Warp Tunnel
+        if(this.tileX < 0) this.tileX = COLS - 1;
+        else if(this.tileX >= COLS) this.tileX = 0;
+
+        this.onCenterTile();
       }
-    } else {
-      // estamos perto do centro inicial: só "snap" no centro
-      this.progress = 0;
     }
 
-    if(this.canGo(this.nextDir)){
-      this.dir = this.nextDir;
-      this.nextDir = null;
+    canMove(dx, dy) {
+      const tx = this.tileX + dx;
+      const ty = this.tileY + dy;
+      
+      // Tunnel check
+      if(tx < 0 || tx >= COLS) return true;
+      if(ty < 0 || ty >= ROWS) return false;
+
+      // Colisão Parede
+      if(mapDesign[ty][tx] === 1) return false;
+      // Colisão Porta Fantasma (Só fantasma pode passar em teoria, mas simplificamos: player não)
+      if(mapDesign[ty][tx] === 4 && this instanceof Pacman) return false;
+      
       return true;
     }
-    return false;
+
+    onCenterTile() {
+      // Override
+    }
   }
 
-  step(dt){
-    // 1) janela de virada (antes de mover):
-    if(this.nextDir){
-      this.tryTurnFromCenter();
+  class Pacman extends Entity {
+    constructor() {
+      super(9, 15, '#ffd700');
+      this.speed = 0.15;
+      this.mouthOpen = 0;
+      this.mouthSpeed = 0.2;
     }
 
-    // 2) avanço contínuo
-    let dist = Math.max(0, this.speed * dt); // em tiles
-    while(dist > 0){
-      const remain = 1 - this.progress;
-      const step = Math.min(remain, dist);
-      this.progress += step;
-      dist -= step;
+    draw() {
+      const px = (this.tileX + this.progress * this.dir.x) * TILE_SIZE + TILE_SIZE/2;
+      const py = (this.tileY + this.progress * this.dir.y) * TILE_SIZE + TILE_SIZE/2;
+      
+      // Animação Boca
+      this.mouthOpen += this.mouthSpeed;
+      if(this.mouthOpen > 0.25 || this.mouthOpen < 0) this.mouthSpeed *= -1;
+      const angle = Math.atan2(this.dir.y, this.dir.x);
 
-      // 2a) checagem de "fim da aresta"
-      if(this.progress >= 1 - SNAP_EPS){
-        const nx = MAZE.wrapX(this.gx + (this.dir?.x||0));
-        const ny = this.gy + (this.dir?.y||0);
+      ctx.fillStyle = this.color;
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = this.color;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.arc(px, py, TILE_SIZE/2 - 1, angle + Math.max(0, this.mouthOpen * Math.PI), angle + Math.PI*2 - Math.max(0, this.mouthOpen * Math.PI));
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
 
-        // parede à frente? pare no centro e dê chance de virar
-        if(MAZE.isWall(nx,ny) || (MAZE.isDoor(nx,ny) && !this.allowDoor)){
-          this.progress = 0;
-          // se havia uma direção buffered, tente agora
-          if(this.nextDir && this.canGo(this.nextDir)){
-            this.dir = this.nextDir;
-            this.nextDir = null;
-          }
-          break;
+    onCenterTile() {
+      // Tenta mudar para nextDir
+      if(this.nextDir.x !== 0 || this.nextDir.y !== 0) {
+        if(this.canMove(this.nextDir.x, this.nextDir.y)) {
+          this.dir = this.nextDir;
+          this.nextDir = {x:0, y:0};
         }
+      }
 
-        // atravessa p/ próxima célula
-        this.gx = nx; this.gy = ny; this.progress = 0;
+      // Se não pode continuar na dir atual, para
+      if(!this.canMove(this.dir.x, this.dir.y)) {
+        this.dir = {x:0, y:0};
+      }
+      
+      // Comer Dots
+      const dotIndex = dots.findIndex(d => d.x === this.tileX && d.y === this.tileY);
+      if(dotIndex !== -1) {
+        dots.splice(dotIndex, 1);
+        score += 10;
+        Audio.playTone(600, 'sine', 0.05, 0.05);
+      }
 
-        // assim que entrar, aplique virada buffered se disponível
-        if(this.nextDir && this.canGo(this.nextDir)){
-          this.dir = this.nextDir; this.nextDir = null;
-        }
+      // Comer Power Pellets
+      const powerIndex = powerPellets.findIndex(p => p.x === this.tileX && p.y === this.tileY);
+      if(powerIndex !== -1) {
+        powerPellets.splice(powerIndex, 1);
+        score += 50;
+        powerModeTime = 600; // frames
+        Audio.playTone(800, 'square', 0.2);
+      }
+      
+      // Som Waka Waka
+      if((this.dir.x !== 0 || this.dir.y !== 0) && wakaTimer++ > 15) {
+        Audio.waka();
+        wakaTimer = 0;
+      }
+      
+      // Vitória?
+      if(dots.length === 0 && powerPellets.length === 0) {
+        initLevel();
       }
     }
   }
-}
 
-
-/*** ===== Pac-Man ===== ***/
-class Pacman extends Actor{
-  constructor(gx,gy,speed){
-    super(gx,gy,speed);
-    this.mouth=0; this.allowDoor=false;
-    this.nextLifeAt = 10000;
-  }
-  tick(dt){ this.mouth += dt*12; }
-  draw(){
-    const {px,py} = this.pixel();
-    const r = MAZE.TILE*0.45;
-    const open = 0.20 + Math.abs(Math.sin(this.mouth))*0.18;
-    CTX.save(); CTX.translate(px,py); CTX.rotate((this.dir?.a)||0);
-    CTX.fillStyle = "#FFD700";
-    CTX.beginPath(); CTX.moveTo(0,0);
-    CTX.arc(0,0,r, open, Math.PI*2 - open, false);
-    CTX.closePath(); CTX.fill();
-    CTX.restore();
-  }
-  maybeExtra(){
-    if(WORLD.score >= this.nextLifeAt){
-      WORLD.lives++; this.nextLifeAt += 10000;
-      toast('1UP!',1.0);
+  class Ghost extends Entity {
+    constructor(x, y, color, type) {
+      super(x, y, color);
+      this.baseColor = color;
+      this.type = type; // 0=Blinky, 1=Pinky, 2=Inky, 3=Clyde
+      this.speed = 0.08 + (Math.random() * 0.02); // Variação leve
+      this.scared = false;
+      this.dead = false;
     }
-  }
-}
 
-/*** ===== Fantasmas ===== ***/
-const GMode={ SCATTER:0, CHASE:1, FRIGHT:2 };
-const CORNERS=[{x:1,y:1},{x:MAZE.COLS-2,y:1},{x:1,y:MAZE.ROWS-2},{x:MAZE.COLS-2,y:MAZE.ROWS-2}];
-
-class Ghost extends Actor{
-  constructor(gx,gy,speed,color,name,index){
-    super(gx,gy,speed);
-    this.base=speed; this.color=color; this.name=name; this.index=index;
-    this.mode=GMode.SCATTER; this.frightT=0; this.eye={x:0,y:0};
-    this.elroy=false; this.allowDoor=true;
-    this.inPen=false; this.releaseT=0;
-  }
-  setBaseSpeed(v){ this.base=v; this.speed=v*(this.elroy? WORLD.ELROY_BOOST:1); }
-  setMode(m){
-  this.mode = m;
-  if (m === GMode.FRIGHT) {
-    // duração será atribuída na hora do energizer (ver doCollisions)
-    this.frightT = Game.FRIGHT_T; // fallback
-    // usar multiplicador por fase (configurado em Game.applyLevelParams)
-    const mul = Game.frightSpeedMul ?? 0.88;
-    this.speed = this.base * mul;
-  } else {
-    // velocidade normal + Elroy se ativo
-    this.speed = this.base * (this.elroy ? Game.ELROY_BOOST : 1);
-  }
-}
-
-  tickMode(dt){
-  if (this.mode === GMode.FRIGHT){
-    this.frightT -= dt;
-    if (this.frightT <= 0){
-      // Volta para o modo que estava antes do fright começar (scatter/chase vigente)
-      this.setMode(Game.prevMode || GMode.CHASE);
-    }
-  }
-}
-
-
-  target(pac,all){
-    if(this.mode===GMode.SCATTER) return CORNERS[this.index%CORNERS.length];
-    if(this.mode===GMode.FRIGHT)  return {x:this.gx,y:this.gy};
-    if(this.name==='Blinky') return {x:pac.gx, y:pac.gy};
-    if(this.name==='Pinky')  return {x:MAZE.wrapX(pac.gx + 4*(pac.dir?.x||0)), y: clamp(pac.gy + 4*(pac.dir?.y||0), 0, MAZE.ROWS-1) };
-    if(this.name==='Inky'){
-      const b=all.find(g=>g.name==='Blinky')||this;
-      const two={x:MAZE.wrapX(pac.gx + 2*(pac.dir?.x||0)), y: clamp(pac.gy + 2*(pac.dir?.y||0), 0, MAZE.ROWS-1)};
-      return {x:MAZE.wrapX(two.x*2 - b.gx), y: clamp(two.y*2 - b.gy, 0, MAZE.ROWS-1)};
-    }
-    if(this.name==='Clyde'){
-      const d=Math.hypot(pac.gx-this.gx,pac.gy-this.gy);
-      return d<6? CORNERS[this.index%CORNERS.length] : {x:pac.gx,y:pac.gy};
-    }
-    return {x:pac.gx,y:pac.gy};
-  }
-  chooseDir(pac,all, allowOpp=false){
-  // 1) opções válidas
-  let options = [DIR.left,DIR.right,DIR.up,DIR.down].filter(d=>{
-    if(!allowOpp && isOpp(d,this.dir)) return false; // evitamos voltar... por enquanto
-    const nx=MAZE.wrapX(this.gx + d.x), ny=this.gy + d.y;
-    if(MAZE.isDoor(nx,ny) && !this.allowDoor) return false;
-    return !MAZE.isWall(nx,ny);
-  });
-
-  // 2) beco sem saída: permita o oposto (reverse) se não houver alternativa
-  if(options.length===0){
-    options = [DIR.left,DIR.right,DIR.up,DIR.down].filter(d=>{
-      const nx=MAZE.wrapX(this.gx + d.x), ny=this.gy + d.y;
-      if(MAZE.isDoor(nx,ny) && !this.allowDoor) return false;
-      return !MAZE.isWall(nx,ny);
-    });
-    // se ainda der zero, fica na atual (não deve acontecer)
-    if(options.length===0) return this.dir || DIR.left;
-  }
-
-  // 3) frightened = aleatório (mais solto) mas evitando parede
-  if(this.mode===GMode.FRIGHT){
-    return options[(Math.random()*options.length)|0];
-  }
-
-  // 4) alvo (IA normal)
-  const t=this.target(pac,all);
-  // desempate “estilo arcade”: prioridade de orientação (UP, LEFT, DOWN, RIGHT) quando empates de distância
-  const prio = [DIR.up,DIR.left,DIR.down,DIR.right];
-  let best=options[0], min=Infinity;
-  for(const d of options){
-    const nx=MAZE.wrapX(this.gx + d.x), ny=this.gy + d.y;
-    const dist=Math.hypot(t.x-nx, t.y-ny);
-    if(dist<min || (Math.abs(dist-min)<1e-6 && prio.indexOf(d)<prio.indexOf(best))){
-      min=dist; best=d;
-    }
-  }
-  return best;
-}
-
-  stepAI(dt,pac,all){
-    if(this.inPen){
-      this.releaseT -= dt;
-      this.progress += dt*0.6;
-      if(this.progress>=1){ this.progress=0; this.dir = (this.dir===DIR.left? DIR.right: DIR.left); }
-      if(this.releaseT<=0){
-        this.inPen=false; this.gx=13; this.gy=3; this.progress=0; this.dir=Math.random()<.5?DIR.left:DIR.right;
-      }
-      return;
-    }
-    if (this.progress===0){
-  // se a frente está bloqueada, permita escolher incluindo oposto
-  const fx = MAZE.wrapX(this.gx + (this.dir?.x||0));
-  const fy = this.gy + (this.dir?.y||0);
-  const forwardBlocked = MAZE.isWall(fx,fy) || (MAZE.isDoor(fx,fy) && !this.allowDoor);
-
-  const nd = this.chooseDir(pac,all, /*allowOpp=*/ forwardBlocked);
-  if(nd) this.dir = nd;
-}
-
-    super.step(dt);
-    this.eye = {x:Math.sign(this.dir?.x||0)*MAZE.TILE*.06, y:Math.sign(this.dir?.y||0)*MAZE.TILE*.06};
-  }
-  draw(){
-    const {px,py} = this.pixel();
-    const r = MAZE.TILE*.46;
-    CTX.save(); CTX.translate(px,py);
-    let body;
-if (this.mode===GMode.FRIGHT){
-  // pisca nos últimos 0.7s
-  if (this.frightT <= 0.7 && ((performance.now()/150)|0)%2===0){
-    body = '#eef';
-  } else {
-    body = '#2b6';
-  }
-} else {
-  body = this.color;
-}
-
-    CTX.fillStyle = body;
-    CTX.beginPath();
-    CTX.arc(0,-r*.15,r,Math.PI,0);
-    const fringe=4, w=(2*r)/fringe; CTX.lineTo(r,r);
-    for(let i=fringe;i>0;i--){
-      const x=-r+(i-.5)*w;
-      CTX.quadraticCurveTo(x, r*0.65, x-w/2, r);
-    }
-    CTX.closePath(); CTX.fill();
-    const eR=MAZE.TILE*.14, pR=MAZE.TILE*.06;
-    CTX.fillStyle="#fff"; CTX.beginPath();
-    CTX.arc(-MAZE.TILE*.18, -MAZE.TILE*.15, eR, 0, Math.PI*2);
-    CTX.arc( MAZE.TILE*.18, -MAZE.TILE*.15, eR, 0, Math.PI*2);
-    CTX.fill();
-    CTX.fillStyle="#111"; CTX.beginPath();
-    CTX.arc(-MAZE.TILE*.18+this.eye.x, -MAZE.TILE*.15+this.eye.y, pR, 0, Math.PI*2);
-    CTX.arc( MAZE.TILE*.18+this.eye.x, -MAZE.TILE*.15+this.eye.y, pR, 0, Math.PI*2);
-    CTX.fill();
-    CTX.restore();
-  }
-}
-
-/*** ===== Game state (timers/mode) ===== ***/
-const Game = {
-  pac: null, ghosts: [],
-  SCATTER_T: 7, CHASE_T: 20, FRIGHT_T: 6, ELROY_BOOST: 1.2, ELROY_THRESHOLD: 12,
-  mode: GMode.SCATTER, modeT: 0,
-  prevMode: GMode.SCATTER,   // guarda o modo que estava antes do fright
-frightActive: false,       // flag global: estamos em “fright”?
-  setMode(m){
-    this.mode=m;
-    WORLD.modeName = (m===0?'Scatter':m===1?'Chase':'Fright');
-    if(m!==GMode.FRIGHT) this.ghosts.forEach(g=>{ if(g.mode!==GMode.FRIGHT) g.setMode(m); });
-  },
-  applyLevelParams(){
-    this.FRIGHT_T = WORLD.FRIGHT_T ?? 6;
-    this.SCATTER_T = WORLD.SCATTER_T ?? 7;
-    this.CHASE_T   = WORLD.CHASE_T   ?? 20;
-    this.ELROY_BOOST = WORLD.ELROY_BOOST ?? 1.2;
-    this.ELROY_THRESHOLD = WORLD.ELROY_THRESHOLD ?? 12;
-    Fruits.valA = WORLD.fruitA ?? 100;
-    Fruits.valB = WORLD.fruitB ?? 300;
-  },
-  resetPositions(keepDots=false){
-    this.pac.gx=13; this.pac.gy=7; this.pac.dir=DIR.left; this.pac.progress=0; this.pac.nextDir=null;
-    const pos=[{x:12,y:4,dir:DIR.left},{x:14,y:4,dir:DIR.right},{x:12,y:5,dir:DIR.left},{x:14,y:5,dir:DIR.right}];
-    this.ghosts.forEach((g,i)=>{ g.gx=pos[i].x; g.gy=pos[i].y; g.dir=pos[i].dir; g.progress=0; g.inPen=false; g.setMode(this.mode); g.elroy=false; });
-    this.modeT=0; this.setMode(GMode.SCATTER);
-    Fruits.list.length=0; Fruits.spawned=0;
-    if(!keepDots) Dots.reset();
-  },
-  updateMode(dt){
-    if (this.frightActive) return; // pausa o ciclo scatter/chase enquanto há fright ativo
-    this.modeT += dt;
-    if(this.mode===GMode.SCATTER && this.modeT>this.SCATTER_T){ this.modeT=0; this.setMode(GMode.CHASE); }
-    else if(this.mode===GMode.CHASE && this.modeT>this.CHASE_T){ this.modeT=0; this.setMode(GMode.SCATTER); }
-  },
-  updateElroy(){
-    const rem = Dots.pellets.size + Dots.powers.size;
-    const blinky = this.ghosts.find(g=>g.name==='Blinky');
-    if(!blinky) return;
-    const want = rem <= this.ELROY_THRESHOLD;
-    if(want && !blinky.elroy){ blinky.elroy=true; if(blinky.mode!==GMode.FRIGHT) blinky.speed = blinky.base * this.ELROY_BOOST; }
-    if(!want && blinky.elroy){ blinky.elroy=false; if(blinky.mode!==GMode.FRIGHT) blinky.speed = blinky.base; }
-  }
-};
-
-/*** ===== Atores ===== ***/
-(function initActors(){
-  const PAC_SPEED = 7.5, GHOST_SPEED=6.6;
-  Game.pac = new Pacman(13,7,PAC_SPEED);
-  Game.ghosts = [
-    new Ghost(12,4,GHOST_SPEED,'#ff3b3b','Blinky',0),
-    new Ghost(14,4,GHOST_SPEED,'#ff8fd8','Pinky',1),
-    new Ghost(12,5,GHOST_SPEED,'#00ffff','Inky',2),
-    new Ghost(14,5,GHOST_SPEED,'#ffb347','Clyde',3),
-  ];
-  WORLD.FRIGHT_T=6; WORLD.SCATTER_T=7; WORLD.CHASE_T=20;
-  WORLD.ELROY_BOOST=1.2; WORLD.ELROY_THRESHOLD=12;
-  WORLD.fruitA=100; WORLD.fruitB=300;
-  Game.applyLevelParams();
-})();
-
-/*** ===== Desenho ===== ***/
-function drawMaze(){
-  for(let y=0;y<MAZE.ROWS;y++) for(let x=0;x<MAZE.COLS;x++){
-    const px = MAZE.offX + x*MAZE.TILE, py = MAZE.offY + y*MAZE.TILE;
-    const v = MAZE.raw[y][x];
-    if(v===1){
-      CTX.fillStyle = '#00124a'; CTX.fillRect(px,py,MAZE.TILE,MAZE.TILE);
-      CTX.strokeStyle = '#0080ff'; CTX.lineWidth = Math.max(1, MAZE.TILE*.08);
-      CTX.strokeRect(px+1,py+1,MAZE.TILE-2,MAZE.TILE-2);
-    } else if(v===4){
-      CTX.fillStyle = '#222'; CTX.fillRect(px,py,MAZE.TILE,MAZE.TILE);
-      CTX.strokeStyle = '#666'; CTX.lineWidth = Math.max(1, MAZE.TILE*.04);
-      CTX.strokeRect(px+2,py+2,MAZE.TILE-4,MAZE.TILE-4);
-    } else {
-      CTX.fillStyle = '#000014'; CTX.fillRect(px,py,MAZE.TILE,MAZE.TILE);
-    }
-  }
-  CTX.fillStyle="#fff";
-  Dots.pellets.forEach(k=>{
-    const [x,y]=k.split(',').map(Number);
-    CTX.beginPath(); CTX.arc(MAZE.cx(x), MAZE.cy(y), MAZE.rDot, 0, Math.PI*2); CTX.fill();
-  });
-  const blink = ((performance.now()/250)|0)%2===0;
-  CTX.fillStyle = blink? "#fff":"#fffb";
-  Dots.powers.forEach(k=>{
-    const [x,y]=k.split(',').map(Number);
-    CTX.beginPath(); CTX.arc(MAZE.cx(x), MAZE.cy(y), MAZE.rPower, 0, Math.PI*2); CTX.fill();
-  });
-}
-
-/*** ===== Colisões ===== ***/
-function doCollisions(){
-  const {px,py} = Game.pac.pixel();
-  const ate = Dots.eatAt(Game.pac.gx, Game.pac.gy);
-
-if (ate === 'power') {
-  // Guardar modo corrente e marcar fright global
-  Game.prevMode     = Game.mode;
-  Game.frightActive = true;
-
-  // Duração do fright (se você tem decay por energizer, aproveita; senão, usa Game.FRIGHT_T)
-  const chain = Math.min(Game.frightChain || 0, (Game.frightDecay?.length||1)-1);
-  const dur   = (Game.FRIGHT_T||0) * (Game.frightDecay?.[chain] ?? 1);
-  Game.frightChain = Math.min(chain+1, 3);
-
-  Game.ghosts.forEach(g=>{
-    g.setMode(GMode.FRIGHT);
-    g.frightT = dur;      // tempo individual
-    g.reverse();          // reverse imediato (clássico)
-    if (g.inPen) g.releaseT = Math.min(g.releaseT || 0.15, 0.15); // sai rápido já azul
-  });
-
-  // NÃO chame Game.setMode(GMode.FRIGHT)!
-  // Só atualize o HUD para o jogador ver que está em Fright.
-  WORLD.modeName = 'Fright';
-  WORLD.setHud();
-}
-
-
-
-
-  Fruits.maybeSpawn();
-  Fruits.tryEat(px,py);
-
-  for(const g of Game.ghosts){
-    const gp = g.pixel();
-    const d = Math.hypot(gp.px-px, gp.py-py);
-    if(d < MAZE.TILE*0.45){
-      if(g.mode===GMode.FRIGHT){
-        WORLD.addScore(200); sfx.ghost();
-        g.gx=13; g.gy=4; g.progress=0; g.inPen=true; g.releaseT=1.6; g.setMode(Game.mode);
-      } else {
-        WORLD.lives--;
-        if(WORLD.lives<=0){ GameOver.trigger(); return; }
-        sfx.death();
-        Game.resetPositions(true);
-        break;
-      }
-    }
-  }
-}
-
-/*** ===== Vitória da fase ===== ***/
-function checkWin(){
-  if(Dots.pellets.size===0 && Dots.powers.size===0 && Fruits.list.length===0){
-    Scenes.paused=true;
-    setTimeout(()=>{
-      savePhaseRank(WORLD.level, SAVE.name||'Player', WORLD.score);
-      WORLD.level++;
-      toast(`Fase ${WORLD.level} ➜`, 1.0);
-      Game.resetPositions(false);
-      Scenes.paused=false;
-    }, 550);
-  }
-}
-
-/*** ===== Hook SceneRun real ===== ***/
-(function hookSceneRun(){
-  const old = SceneRun;
-  SceneRun.enter = function(){
-    Scenes.paused=false;
-    WORLD.modeName='Ready!';
-    WORLD.setHud();
-    Game.applyLevelParams();
-    Game.resetPositions(false);
-    music.setSeq(BG_LOOP, 108); if(AC) music.play();
-    sfx.start();
-  };
-  SceneRun.reset = function(){
-    WORLD.level=1; WORLD.score=0; WORLD.lives=3;
-    WORLD.modeName='Ready!'; WORLD.setHud();
-    Game.applyLevelParams();
-    Game.resetPositions(false);
-    if(AC){ music.stop(); music.play(); }
-  };
-  SceneRun.update = function(dt){
-    pollGamepad();
-    if(Input.pause){ Scenes.togglePause(); Input.pause=false; }
-    if(Input.left && isOpp(DIR.left, Game.pac.dir)) Game.pac.reverse(); else if(Input.left) Game.pac.nextDir=DIR.left;
-    if(Input.right && isOpp(DIR.right, Game.pac.dir)) Game.pac.reverse(); else if(Input.right) Game.pac.nextDir=DIR.right;
-    if(Input.up && isOpp(DIR.up, Game.pac.dir)) Game.pac.reverse(); else if(Input.up) Game.pac.nextDir=DIR.up;
-    if(Input.down && isOpp(DIR.down, Game.pac.dir)) Game.pac.reverse(); else if(Input.down) Game.pac.nextDir=DIR.down;
-
-    Game.pac.tick(dt); Game.pac.step(dt);
-    for(const g of Game.ghosts){ g.tickMode(dt); g.stepAI(dt, Game.pac, Game.ghosts); }
-
-    // Se estávamos em fright e todos já saíram, retomar ciclo normal
-if (Game.frightActive && Game.ghosts.every(g=> g.mode !== GMode.FRIGHT)) {
-  Game.frightActive = false;
-  // volta o HUD para o modo “real” atual
-  Game.setMode(Game.prevMode || GMode.CHASE);
-}
-
-
-    Fruits.update(dt);
-    doCollisions();
-    Game.updateMode(dt);
-    Game.updateElroy();
-    Game.pac.maybeExtra();
-
-    checkWin();
-
-    if(Scenes.resetRunRequested){ this.reset(); Scenes.resetRunRequested=false; }
-  };
-  SceneRun.draw = function(){
-    CTX.fillStyle='#000014'; CTX.fillRect(0,0,W,H);
-    drawMaze();
-    Game.pac.draw();
-    for(const g of Game.ghosts) g.draw();
-    Fruits.draw();
-  };
-})();
-</script>
-
-<!-- ===========================
-     PAC-MAN REMASTERED+ (ULTRA)
-     Parte 3/6 — IA avançada + Entrada + Dificuldade/Fases + Painel de Fase
-     =========================== -->
-<script>
-'use strict';
-
-/* 
-Resumo do que esta parte adiciona:
-- IA refinada com “rounds” de Scatter/Chase (sequências por fase).
-- Dificuldade progressiva por fase (speeds, timers, Elroy, frutas).
-- Animação de ENTRADA dos fantasmas (saem do ninho em sequência, por fase).
-- Painel “📊 Fase Atual” (criado via JS), exibindo velocidades e tempos.
-- Ajustes de alvo da Pinky (offset de 4 tiles à frente com bug clássico virando para cima).
-*/
-
-/*** =================== Config por Fase =================== ***/
-/* 
-  Tabela base inspirada no arcade (valores adaptados para nosso grid/escala):
-  - Speeds crescem com a fase (ghosts ganham mais que o Pac).
-  - Fright dura menos com o avanço.
-  - Scatter/Chase seguem “rounds” (os últimos viram CHASE infinito).
-  - Cruise Elroy fica mais agressivo.
-  - Frutas valem mais.
-*/
-function levelConfig(level){
-  const L = Math.max(1, level|0);
-
-  // Velocidades base (tiles/s)
-  const pacBase   = 7.5 + Math.min(2.0, (L-1)*0.20);
-  const ghostBase = 6.6 + Math.min(3.0, (L-1)*0.45);
-
-  // ===== FRIGHT (ajustado para ficar MAIS curto) =====
-  // Base por fase: cai rápido e zera a partir da fase 10 (estilo arcade)
-  let frightBase = Math.max(0, 3.2 - (L-1)*0.35); // ex.: F1~3.2s, F5~1.8s, F9~0.6s, F10+=0
-  if (L >= 10) frightBase = 0;
-
-  // Decay por energizer dentro da MESMA fase (1º, 2º, 3º, 4º)
-  // 1º = 100%, 2º = 60%, 3º = 40%, 4º+ = 25%
-  const frightDecay = [1.0, 0.6, 0.4, 0.25];
-
-  // Velocidade em FRIGHT: no começo ficam um pouco mais lentos;
-  // em fases médias quase nada; em fases altas NÃO ficam mais lentos.
-  let frightSpeedMul =
-    (L <= 4) ? 0.88 :
-    (L <= 8) ? 0.96 :
-               1.00;
-
-  // Scatter/Chase rounds
-  const scatterSeq = [ Math.max(3.5, 7 - .2*(L-1)), Math.max(3.5, 7 - .2*(L-1)),
-                       Math.max(3.0, 5 - .2*(L-1)), Math.max(2.5, 5 - .2*(L-1)) ];
-  const chaseSeq   = [ Math.max(10, 20 - .5*(L-1)), Math.max(10, 20 - .5*(L-1)),
-                       Math.max(10, 20 - .5*(L-1)), Infinity ];
-
-  // Cruise Elroy
-  const elroyBoost   = 1.20 + Math.min(0.8, (L-1)*0.06);
-  const elroyRatio   = Math.max(0.06, 0.20 - (L-1)*0.01);
-
-  // Frutas
-  const fruitA = 100 + (L-1)*60;
-  const fruitB = 300 + (L-1)*60;
-
-  // Releases (entrada do ninho)
-  const baseRelease = Math.max(0.3, 1.6 - (L-1)*0.10);
-  const releases = { Blinky:0.0+baseRelease, Pinky:0.8+baseRelease, Inky:1.6+baseRelease, Clyde:2.4+baseRelease };
-
-  return {
-    pacSpeed: pacBase,
-    ghostSpeed: ghostBase,
-    // === novos campos: ===
-    frightBase,
-    frightDecay,
-    frightSpeedMul,
-    scatterSeq,
-    chaseSeq,
-    elroyBoost,
-    elroyRatio,
-    fruitA, fruitB,
-    releases
-  };
-}
-
-
-/*** =============== Painel de Fase (UI) =============== ***/
-/* Injetamos um painel do lado esquerdo com os parâmetros atuais da fase. */
-const phasePanel = (()=> {
-  const el = document.createElement('div');
-  el.className = 'panel';
-  el.style.left = '8px';
-  el.style.right = 'auto';
-  el.style.maxWidth = 'min(40vw, 420px)';
-  el.innerHTML = `
-    <h3>📊 Fase Atual</h3>
-    <div class="grid" style="grid-template-columns:auto auto;gap:.2rem .6rem" id="phaseGrid">
-      <div class="k">Fase</div><div id="ph_lvl">—</div>
-      <div class="k">Pac (tiles/s)</div><div id="ph_pac">—</div>
-      <div class="k">Ghost (tiles/s)</div><div id="ph_gh">—</div>
-      <div class="k">Fright (s)</div><div id="ph_fr">—</div>
-      <div class="k">Elroy</div><div id="ph_elroy">—</div>
-      <div class="k">Frutas</div><div id="ph_fruits">—</div>
-      <div class="k">Scatter Rounds</div><div id="ph_sc">—</div>
-      <div class="k">Chase Rounds</div><div id="ph_ch">—</div>
-    </div>
-  `;
-  document.body.appendChild(el);
-  const ids = id => el.querySelector('#'+id);
-  const api = {
-    set(cfg){
-      ids('ph_lvl').textContent   = WORLD.level;
-      ids('ph_pac').textContent   = (Math.round(cfg.pacSpeed*100)/100).toFixed(2);
-      ids('ph_gh').textContent    = (Math.round(cfg.ghostSpeed*100)/100).toFixed(2);
-      ids('ph_fr').textContent    = (Math.round(cfg.fright*100)/100).toFixed(2);
-      const elCount = Math.max(6, Math.floor(Dots.total * cfg.elroyRatio));
-      ids('ph_elroy').textContent = `×${(Math.round(cfg.elroyBoost*100)/100).toFixed(2)} • ≤ ${elCount} dots`;
-      ids('ph_fruits').textContent= `${cfg.fruitA} / ${cfg.fruitB}`;
-      ids('ph_sc').textContent    = cfg.scatterSeq.map(s=>s===Infinity?'∞':Math.round(s)).join(' , ');
-      ids('ph_ch').textContent    = cfg.chaseSeq.map(s=>s===Infinity?'∞':Math.round(s)).join(' , ');
-    }
-  };
-  return api;
-})();
-
-/*** ======= Integrar config de fase no Game/WORLD ======= ***/
-(function augmentLevelSystem(){
-  // Armazenamos também a sequência de rounds (scatter/chase) e o round atual
-  Game.roundIndex = 0;
-  Game.roundTime  = 0;
-
-  // Substitui applyLevelParams para usar levelConfig + atualizar UI
-  Game.applyLevelParams = function(){
-  const cfg = levelConfig(WORLD.level);
-
-  // velocidades
-  this.pac.speed = cfg.pacSpeed;
-  for (const g of this.ghosts) g.setBaseSpeed(cfg.ghostSpeed);
-
-  // === FRIGHT base/decay/velocidade ===
-  WORLD.FRIGHT_T  = cfg.frightBase;
-  this.FRIGHT_T   = cfg.frightBase;
-  this.frightDecay = cfg.frightDecay.slice();
-  this.frightSpeedMul = cfg.frightSpeedMul;
-  this.frightChain = 0; // quantos energizers já usados nesta fase (0..3)
-
-  // rounds
-  this.scatterSeq = cfg.scatterSeq.slice();
-  this.chaseSeq   = cfg.chaseSeq.slice();
-  this.roundIndex = 0;
-  this.roundTime  = 0;
-
-  // Elroy
-  WORLD.ELROY_BOOST = cfg.elroyBoost;
-  WORLD.ELROY_THRESHOLD = Math.max(6, Math.floor(Dots.total * cfg.elroyRatio));
-
-  // Frutas
-  WORLD.fruitA = cfg.fruitA; WORLD.fruitB = cfg.fruitB;
-  Fruits.valA  = cfg.fruitA; Fruits.valB  = cfg.fruitB;
-
-  // Releases
-  this.releases = cfg.releases;
-
-  // UI painel de fase
-  phasePanel.set({
-    pacSpeed: cfg.pacSpeed,
-    ghostSpeed: cfg.ghostSpeed,
-    fright: cfg.frightBase,
-    scatterSeq: cfg.scatterSeq,
-    chaseSeq: cfg.chaseSeq,
-    elroyBoost: cfg.elroyBoost,
-    elroyRatio: cfg.elroyRatio,
-    fruitA: cfg.fruitA, fruitB: cfg.fruitB
-  });
-
-  WORLD.modeName = ['Scatter','Chase','Fright'][this.mode] || '—';
-  WORLD.setHud();
-};
-
-  // Ajuste do ciclo de modo para usar rounds
-  Game.setMode = function(m){
-    this.mode = m;
-    WORLD.modeName = (m===0?'Scatter':m===1?'Chase':'Fright');
-    if(m!==GMode.FRIGHT) this.ghosts.forEach(g=>{ if(g.mode!==GMode.FRIGHT) g.setMode(m); });
-    this.roundTime = 0;
-  };
-
-  // Troca de modo agora respeita scatter/chase sequenciais (rounds)
-  Game.updateMode = function(dt){
-    // pausa contagem enquanto Fright estiver ativo
-    if(this.ghosts.some(g=>g.mode===GMode.FRIGHT)) return;
-
-    this.roundTime += dt;
-
-    const isScatter = (this.mode===GMode.SCATTER);
-    const seq = isScatter ? this.scatterSeq : this.chaseSeq;
-    const currentCap = seq[Math.min(this.roundIndex, seq.length-1)];
-
-    if(currentCap===Infinity) return; // chase infinito
-
-    if(this.roundTime > currentCap){
-      this.roundTime = 0;
-      // alterna modo
-      if(isScatter){
-        this.setMode(GMode.CHASE);
-      } else {
-        this.setMode(GMode.SCATTER);
-        this.roundIndex++;
-      }
-    }
-  };
-
-})();
-
-/*** ============ Entrada Cinematográfica ============ ***/
-/*
-  Ao iniciar/resetar a fase: fantasmas começam no ninho “inPen”, balançam,
-  e saem um de cada vez conforme “releases”.
-*/
-(function augmentEntry(){
-  // Seed de entrada por fase
-  Game.seedGhostReleases = function(){
-    const R = this.releases || {Blinky:1.0,Pinky:1.8,Inky:2.6,Clyde:3.4};
-    const order = ['Blinky','Pinky','Inky','Clyde'];
-    for(const name of order){
-      const g = this.ghosts.find(x=>x.name===name);
-      if(!g) continue;
-      g.inPen = true;
-      g.releaseT = R[name];
-      g.dir = DIR.left;
-      g.progress = 0;
-      g.allowDoor = true; // pode passar pela porta
-    }
-    // Pac não atravessa porta
-    this.pac.allowDoor = false;
-  };
-
-  // Gancho nos resets
-  const _resetPositions = Game.resetPositions.bind(Game);
-  Game.resetPositions = function(keepDots=false){
-    _resetPositions(keepDots);
-    this.seedGhostReleases();
-    // Mostrar “READY!” e tocar start
-    showCenter(`Fase ${WORLD.level}`);
-    if(AC) sfx.start();
-  };
-
-  // Sair do ninho: quando releaseT <= 0, teleporta na porta e inicia rumo
-  const _stepAI = Ghost.prototype.stepAI;
-  Ghost.prototype.stepAI = function(dt,pac,all){
-    if(this.inPen){
-      this.releaseT -= dt;
-      // balança
-      this.progress += dt*0.7;
-      if(this.progress>=1){ this.progress=0; this.dir = (this.dir===DIR.left? DIR.right: DIR.left); }
-      // sair?
-      if(this.releaseT<=0){
-        this.inPen=false;
-        this.gx=13; this.gy=3; this.progress=0;
-        this.dir = Math.random()<.5? DIR.left:DIR.right;
-      }
-      return;
-    }
-    _stepAI.call(this, dt, pac, all);
-  };
-})();
-
-/*** ============ IA refinada (Pinky fix “clássico”) ============ ***/
-/*
-  No arcade original, Pinky em “up” tinha um bug que a mirava 4 tiles à frente e 4 à esquerda.
-  Vamos replicar esse charme/estratégia: se Pac está subindo, aplicar offset especial.
-*/
-(function augmentPinkyTarget(){
-  const _target = Ghost.prototype.target;
-  Ghost.prototype.target = function(pac,all){
-    if(this.mode===GMode.SCATTER) return CORNERS[this.index%CORNERS.length];
-    if(this.mode===GMode.FRIGHT)  return {x:this.gx,y:this.gy};
-    if(this.name==='Pinky'){
-      // 4 à frente + “bug” ao subir: desloca 4 à esquerda adicional
-      let tx = pac.gx + 4*(pac.dir?.x||0);
-      let ty = pac.gy + 4*(pac.dir?.y||0);
-      if(pac.dir===DIR.up){
-        tx -= 4; // bug clássico
-      }
-      return { x: MAZE.wrapX(tx), y: clamp(ty, 0, MAZE.ROWS-1) };
-    }
-    // Inky usa o Blinky como referência (já implementado em Parte 2)
-    return _target.call(this, pac, all);
-  };
-})();
-
-/*** ============ Avanço de Fase (aplicando configs) ============ ***/
-(function augmentNextLevel(){
-  // Substitui checkWin para aplicar a nova fase com configs e salvar ranking de fase
-  const _checkWin = checkWin;
-  window.checkWin = function(){
-    if(Dots.pellets.size===0 && Dots.powers.size===0 && Fruits.list.length===0){
-      Scenes.paused=true;
-      setTimeout(()=>{
-        savePhaseRank(WORLD.level, SAVE.name||'Player', WORLD.score);
-        WORLD.level++;
-        // aplica nova config
-        Game.applyLevelParams();
-        Game.resetPositions(false);
-        renderPhaseSelect(WORLD.level);
-        renderPhaseRank(WORLD.level);
-        Scenes.paused=false;
-      }, 550);
-    }
-  };
-
-  // Também reforça SceneRun.enter/reset para aplicar config a cada fase
-  const _enter = SceneRun.enter.bind(SceneRun);
-  SceneRun.enter = function(){
-    _enter();
-    Game.applyLevelParams();
-    Game.resetPositions(false);
-  };
-  const _reset = SceneRun.reset.bind(SceneRun);
-  SceneRun.reset = function(){
-    _reset();
-    Game.applyLevelParams();
-    Game.resetPositions(false);
-  };
-})();
-
-/*** ======= Ajuste leve de desenho (porta destaque) ======= ***/
-(function highlightDoor(){
-  const _drawMaze = drawMaze;
-  window.drawMaze = function(){
-    _drawMaze();
-    // glow sutil na porta quando algum fantasma está para sair (releaseT < 0.6)
-    const nearExit = Game.ghosts.some(g=>g.inPen && g.releaseT<0.6);
-    if(nearExit){
-      const gx=13, gy=3;
-      const x = MAZE.offX + gx*MAZE.TILE, y = MAZE.offY + gy*MAZE.TILE;
-      CTX.save();
-      CTX.strokeStyle = 'rgba(255,255,255,.35)';
-      CTX.lineWidth = Math.max(1, MAZE.TILE*.06);
-      CTX.strokeRect(x+2,y+2,MAZE.TILE-4,MAZE.TILE-4);
-      CTX.restore();
-    }
-  };
-})();
-
-/*** ======= Inicializa config para a fase atual ======= ***/
-Game.applyLevelParams();
-Game.resetPositions(false);
-
-</script>
-
-<!-- ===========================
-     PAC-MAN REMASTERED+ (ULTRA)
-     Parte 4/6 — Pós (CRT/Glow), Partículas, Luz, Rastro, Câmera
-     =========================== -->
-<script>
-'use strict';
-
-/* 
-O que esta parte adiciona:
-- Pós-processo “fake”: CRT (scanlines + vinheta) e Glow (bloom manual simples).
-- Partículas: fagulhas ao comer pellet, splash de power-pellet, poof de fantasma comido, burst da fruta e morte do Pac.
-- Rastro (afterimage) do Pac e trilhas leves nos fantasmas em modo FRIGHT.
-- Iluminação ambiente (opcional): luz radial suave no Pac e sombras leves nas paredes.
-- Tremor de tela (screen shake) para eventos.
-- “Ghost Cam”: debug para seguir Blinky (tecla T já mapeada).
-- Hooks no loop de jogo para atualizar/desenhar tudo isso.
-*/
-
-/*** ============== Helpers de tempo e rand ============== ***/
-const TAU = Math.PI*2;
-const randSign = ()=> (Math.random()<0.5? -1: 1);
-
-/*** ============== Sistema de Tremor de Tela ============== ***/
-const Shake = {
-  t:0, dur:0, mag:0,
-  trigger(mag=6, dur=0.25){ this.mag=Math.max(this.mag,mag); this.dur=Math.max(this.dur,dur); this.t=this.dur; },
-  offset(){
-    if(this.t<=0) return {x:0,y:0};
-    const k = this.t/this.dur;
-    return { x: (Math.random()*2-1)*this.mag*k, y: (Math.random()*2-1)*this.mag*k };
-  },
-  update(dt){ if(this.t>0) this.t -= dt; }
-};
-
-/*** ============== Sistema de Partículas ============== ***/
-const Particles = {
-  list: [],
-  spawn(x,y, opt={}){
-    // opt: {n, life, size, color, vel, spread, gravity, fade, ring}
-    const n = opt.n ?? 10;
-    for(let i=0;i<n;i++){
-      const a = rnd(TAU), sp = (opt.spread ?? 1)*rnd(1,0.25);
-      const v = opt.vel ?? rnd(120, 40);
-      const vx = Math.cos(a)*v*sp, vy = Math.sin(a)*v*sp;
-      this.list.push({
-        x, y,
-        vx, vy,
-        g: opt.gravity ?? 0,
-        life: opt.life ?? rnd(0.45,0.25),
-        t: 0,
-        size: opt.size ?? rnd(2.6,1.3),
-        color: opt.color || 'rgba(255,255,255,1)',
-        fade: opt.fade ?? true,
-        ring: !!opt.ring
-      });
-    }
-  },
-  pellet(x,y){
-    this.spawn(x,y,{ n:rndi(6,3), life:.32, size:rnd(2.4,1.3), color:'rgba(255,255,255,.9)', vel:rnd(160,90), spread:.6, gravity:80 });
-  },
-  power(x,y){
-    this.spawn(x,y,{ n:rndi(18,12), life:.55, size:rnd(3.4,2), color:'rgba(255,255,160,.95)', vel:rnd(200,120), spread:1, gravity:60 });
-  },
-  fruit(x,y){
-    this.spawn(x,y,{ n:rndi(14,8), life:.45, size:rnd(3,1.6), color:'rgba(255,80,90,.95)', vel:rnd(200,140), spread:1, gravity:100 });
-  },
-  ghostPoof(x,y){
-    this.spawn(x,y,{ n:rndi(22,14), life:.55, size:rnd(3.4,2.2), color:'rgba(160,240,255,.95)', vel:rnd(240,120), spread:1, gravity:50 });
-  },
-  death(x,y){
-    this.spawn(x,y,{ n:rndi(42,28), life:.75, size:rnd(4,2.2), color:'rgba(255,220,0,.95)', vel:rnd(280,140), spread:1.2, gravity:120 });
-  },
-  update(dt){
-    for(let i=this.list.length-1;i>=0;i--){
-      const p=this.list[i];
-      p.t += dt;
-      if(p.t >= p.life){ this.list.splice(i,1); continue; }
-      p.vy += p.g*dt;
-      p.x  += p.vx*dt;
-      p.y  += p.vy*dt;
-    }
-  },
-  draw(ctx=CTX){
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    for(const p of this.list){
-      const k = p.t/p.life;
-      const alpha = p.fade? (1-k) : 1;
-      ctx.fillStyle = p.color.replace(/[\d.]+\)$/,(m)=> (alpha.toFixed(3)+')'));
-      if(p.ring){
+    draw() {
+      const px = (this.tileX + this.progress * this.dir.x) * TILE_SIZE + TILE_SIZE/2;
+      const py = (this.tileY + this.progress * this.dir.y) * TILE_SIZE + TILE_SIZE/2;
+      
+      let drawColor = this.dead ? '#333' : (this.scared ? '#00f' : this.baseColor);
+      if(this.scared && powerModeTime < 120 && Math.floor(Date.now()/200)%2===0) drawColor = '#fff'; // Piscar
+
+      ctx.fillStyle = drawColor;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = drawColor;
+      
+      // Corpo (Domo + Retângulo)
+      ctx.beginPath();
+      ctx.arc(px, py - 2, TILE_SIZE/2 - 2, Math.PI, 0);
+      ctx.lineTo(px + TILE_SIZE/2 - 2, py + TILE_SIZE/2 - 2);
+      ctx.lineTo(px - TILE_SIZE/2 + 2, py + TILE_SIZE/2 - 2);
+      ctx.fill();
+      
+      // Olhos
+      if(!this.scared || this.dead) {
+        ctx.fillStyle = '#fff';
         ctx.beginPath();
-        ctx.arc(p.x,p.y, p.size*(1+k*1.2), 0, TAU);
-        ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1 + k*2;
-        ctx.stroke();
-      }else{
-        ctx.beginPath();
-        ctx.arc(p.x,p.y, p.size, 0, TAU);
+        ctx.arc(px - 3, py - 4, 2, 0, Math.PI*2);
+        ctx.arc(px + 3, py - 4, 2, 0, Math.PI*2);
         ctx.fill();
       }
+      ctx.shadowBlur = 0;
     }
-    ctx.restore();
-  }
-};
 
-/*** ============== Rastro (Afterimage) ============== ***/
-const Trails = {
-  pac: [],
-  ghosts: [],
-  pushPac(px,py, ang){
-    this.pac.push({x:px,y:py,a:ang, t:0, life:.28});
-    if(this.pac.length>36) this.pac.shift();
-  },
-  pushGhost(g,px,py){
-    if(g.mode!==GMode.FRIGHT) return;
-    if(!this.ghosts[g.name]) this.ghosts[g.name]=[];
-    const arr=this.ghosts[g.name];
-    arr.push({x:px,y:py, t:0, life:.24, color:g.color});
-    if(arr.length>24) arr.shift();
-  },
-  update(dt){
-    for(let i=this.pac.length-1;i>=0;i--){
-      this.pac[i].t += dt; if(this.pac[i].t>this.pac[i].life) this.pac.splice(i,1);
+    onCenterTile() {
+      // IA Simples: Escolher direção válida que minimiza distância ao alvo
+      
+      const dirs = [
+        {x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}
+      ];
+      
+      // Não pode voltar 180 graus (exceto se scared/dead)
+      const opposite = {x: -this.dir.x, y: -this.dir.y};
+      
+      let validMoves = dirs.filter(d => {
+        if(!this.dead && !this.scared && d.x === opposite.x && d.y === opposite.y) return false;
+        return this.canMove(d.x, d.y);
+      });
+      
+      if(validMoves.length === 0) validMoves = [opposite]; // Beco sem saída
+
+      let target = {x: pacman.tileX, y: pacman.tileY};
+      
+      if(this.dead) {
+        target = {x: 9, y: 9}; // Casa dos fantasmas
+        if(this.tileX === 9 && this.tileY === 9) {
+            this.dead = false;
+            this.scared = false;
+        }
+      } else if(this.scared) {
+        // Alvo aleatório (correr)
+        target = {x: Math.random()*COLS, y: Math.random()*ROWS};
+      } else {
+         // Comportamentos diferentes
+         if(this.type === 1) target.x += 4; // Pinky ambushes
+         if(this.type === 2) target.y += 4; // Inky
+         if(this.type === 3 && Math.random() < 0.5) target = {x:0, y:0}; // Clyde wanders
+      }
+
+      // Escolher melhor movimento
+      let bestDir = validMoves[0];
+      let minDist = 99999;
+      
+      validMoves.forEach(d => {
+        const tx = this.tileX + d.x;
+        const ty = this.tileY + d.y;
+        const dist = Math.hypot(tx - target.x, ty - target.y);
+        
+        // Se scared, maximiza distância, senão minimiza
+        if(this.scared && !this.dead) {
+            if(dist > minDist) { minDist = dist; bestDir = d; } // Erro lógico proposital para aleatoriedade
+            else if (Math.random() < 0.3) bestDir = d;
+        } else {
+            if(dist < minDist) { minDist = dist; bestDir = d; }
+        }
+      });
+      
+      this.dir = bestDir;
     }
-    for(const k in this.ghosts){
-      const arr=this.ghosts[k];
-      for(let i=arr.length-1;i>=0;i--){ arr[i].t+=dt; if(arr[i].t>arr[i].life) arr.splice(i,1); }
-    }
-  },
-  draw(){
-    // Pac trail
-    CTX.save();
-    for(const t of this.pac){
-      const k=t.t/t.life;
-      CTX.globalAlpha = (1-k)*0.35;
-      CTX.save(); CTX.translate(t.x,t.y); CTX.rotate(t.a||0);
-      CTX.fillStyle='#FFD700';
-      CTX.beginPath(); CTX.moveTo(0,0);
-      CTX.arc(0,0, MAZE.TILE*0.40, 0.25, TAU-0.25);
-      CTX.closePath(); CTX.fill();
-      CTX.restore();
-    }
-    // Ghost trails (fright)
-    CTX.globalAlpha = 1;
-    for(const name in this.ghosts){
-      for(const t of this.ghosts[name]){
-        const k=t.t/t.life;
-        CTX.globalAlpha = (1-k)*0.34;
-        CTX.fillStyle = t.color;
-        CTX.beginPath(); CTX.arc(t.x,t.y, MAZE.TILE*0.30, 0, TAU); CTX.fill();
+  }
+
+  // Instâncias
+  let pacman;
+  let ghosts = [];
+
+  function initLevel() {
+    walls = [];
+    dots = [];
+    powerPellets = [];
+    
+    // Parse Map
+    for(let r=0; r<ROWS; r++) {
+      for(let c=0; c<COLS; c++) {
+        const type = mapDesign[r][c];
+        if(type === 1) walls.push({x:c, y:r});
+        if(type === 0) dots.push({x:c, y:r});
+        if(type === 3) powerPellets.push({x:c, y:r});
       }
     }
-    CTX.restore();
-  }
-};
 
-/*** ============== Iluminação / Ambiente (leve) ============== ***/
-const Lights = {
-  enabled(){ return (SAVE.options.quality==='high'||SAVE.options.quality==='ultra') && (SAVE.options.post==='glow' || SAVE.options.post==='both'); },
-  draw(){
-    if(!this.enabled()) return;
-    CTX.save();
-    // camada escura
-    CTX.fillStyle='rgba(0,0,8,0.50)';
-    CTX.fillRect(0,0,W,H);
-    // luz Pac
-    const P = Game.pac.pixel();
-    const grad=CTX.createRadialGradient(P.px,P.py, MAZE.TILE*0.2, P.px,P.py, MAZE.TILE*3.4);
-    grad.addColorStop(0,'rgba(255,255,200,0.70)');
-    grad.addColorStop(1,'rgba(0,0,0,0)');
-    CTX.globalCompositeOperation='lighter';
-    CTX.fillStyle=grad;
-    CTX.beginPath(); CTX.arc(P.px,P.py, MAZE.TILE*3.6, 0, TAU); CTX.fill();
-    // luzes rápidas nos power-pellets restantes
-    CTX.globalAlpha = 0.55;
-    Dots.powers.forEach(s=>{
-      const [x,y]=s.split(',').map(Number);
-      const cx=MAZE.cx(x), cy=MAZE.cy(y);
-      const g=CTX.createRadialGradient(cx,cy, MAZE.TILE*0.1, cx,cy, MAZE.TILE*2.2);
-      g.addColorStop(0,'rgba(255,255,180,.7)'); g.addColorStop(1,'rgba(0,0,0,0)');
-      CTX.fillStyle=g; CTX.beginPath(); CTX.arc(cx,cy, MAZE.TILE*2.2, 0, TAU); CTX.fill();
+    pacman = new Pacman();
+    ghosts = [
+      new Ghost(9, 9, '#f00', 0), // Blinky
+      new Ghost(8, 9, '#ffb8ff', 1), // Pinky
+      new Ghost(10, 9, '#00ffff', 2), // Inky
+      new Ghost(9, 8, '#ffb852', 3)  // Clyde
+    ];
+  }
+
+  function gameLoop() {
+    if(!gameRunning) return;
+    
+    ctx.fillStyle = '#05050a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Desenhar Mapa
+    // Paredes
+    ctx.fillStyle = '#111';
+    ctx.strokeStyle = '#00f';
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 5;
+    ctx.shadowColor = '#00f';
+    
+    walls.forEach(w => {
+      ctx.strokeRect(w.x*TILE_SIZE + 4, w.y*TILE_SIZE + 4, TILE_SIZE - 8, TILE_SIZE - 8);
     });
-    CTX.restore();
-  }
-};
+    ctx.shadowBlur = 0;
 
-/*** ============== Pós-processo (CRT + Glow) ============== ***/
-const PostFX = {
-  scanlinesCanvas: null,
-  buildScanlines(){
-    const c = document.createElement('canvas');
-    c.width = 2; c.height = 2;
-    const x = c.getContext('2d');
-    x.fillStyle='#000'; x.fillRect(0,0,2,2);
-    x.fillStyle='rgba(255,255,255,0.06)';
-    x.fillRect(0,0,2,1); // uma linha clara sutil
-    this.scanlinesCanvas = c;
-  },
-  vignette(ctx){
-    const g = ctx.createRadialGradient(W/2,H/2, Math.min(W,H)*0.35, W/2,H/2, Math.max(W,H)*0.65);
-    g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(1, 'rgba(0,0,0,0.45)');
-    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-  },
-  scanlines(ctx){
-    if(!this.scanlinesCanvas) this.buildScanlines();
-    const pat = ctx.createPattern(this.scanlinesCanvas, 'repeat');
-    ctx.globalAlpha = 0.28;
-    ctx.fillStyle = pat;
-    ctx.fillRect(0,0,W,H);
-    ctx.globalAlpha = 1;
-  },
-  glow(ctx){
-    // bloom simples: desenha uma cópia desfocada fake usando shadow
-    ctx.save();
-    ctx.globalCompositeOperation='lighter';
-    ctx.shadowColor='rgba(0,120,255,0.25)';
-    ctx.shadowBlur = 12;
-    // contorno rápido do labirinto para “acender arestas”
-    for(let y=0;y<MAZE.ROWS;y++) for(let x=0;x<MAZE.COLS;x++){
-      if(MAZE.raw[y][x]===1){
-        ctx.fillStyle='#002060';
-        ctx.fillRect(MAZE.offX + x*MAZE.TILE, MAZE.offY + y*MAZE.TILE, MAZE.TILE, MAZE.TILE);
-      }
-    }
-    ctx.restore();
-  },
-  draw(){
-    const post = SAVE.options.post || 'off';
-    if(post==='off') return;
-    if(post==='glow' || post==='both') this.glow(CTX);
-    if(post==='crt'  || post==='both'){ this.vignette(CTX); this.scanlines(CTX); }
-  }
-};
+    // Dots
+    ctx.fillStyle = '#ffb8ae';
+    dots.forEach(d => {
+      ctx.fillRect(d.x*TILE_SIZE + TILE_SIZE/2 - 2, d.y*TILE_SIZE + TILE_SIZE/2 - 2, 4, 4);
+    });
 
-/*** ============== Camera: Ghost Cam + Shake ============== ***/
-(function augmentCamera(){
-  const _draw = SceneRun.draw.bind(SceneRun);
-  SceneRun.draw = function(){
-    // shake update é feito no update, offset aplicado aqui
-    const off = Shake.offset();
-    if(Debug.ghostCam){
-      const blinky = Game.ghosts?.find(g=>g.name==='Blinky') || Game.pac;
-      const p = blinky.pixel ? blinky.pixel() : Game.pac.pixel();
-      Camera.x = (p.px - W/2) / Camera.zoom;
-      Camera.y = (p.py - H/2) / Camera.zoom;
-      Camera.zoom = 1.08;
-    } else {
-      Camera.x = -off.x; Camera.y = -off.y; Camera.zoom = 1;
+    // Power Pellets
+    if(Math.floor(Date.now() / 200) % 2 === 0) {
+      ctx.fillStyle = '#fff';
+      powerPellets.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x*TILE_SIZE + TILE_SIZE/2, p.y*TILE_SIZE + TILE_SIZE/2, 6, 0, Math.PI*2);
+        ctx.fill();
+      });
     }
 
-    CTX.save();
-    CTX.translate(off.x, off.y); // tremor global
-    // desenho base
-    _draw();
-    // rastro sobre entidades
-    Trails.draw();
-    // partículas no topo (glow usa lighter)
-    Particles.draw(CTX);
-    // iluminação (escurece + “lâmpadas”)
-    Lights.draw();
-    // pós-processo final
-    PostFX.draw();
-    CTX.restore();
-  };
-})();
+    // Update & Draw Entities
+    pacman.move();
+    pacman.draw();
 
-/*** ============== Hooks em Eventos do Jogo ============== ***/
-// 1) Rastro do Pac e fantasmas
-(function hookTrails(){
-  const _update = SceneRun.update.bind(SceneRun);
-  SceneRun.update = function(dt){
-    // antes ou depois das atualizações de entidades? depois de mover é melhor capturar posições finais
-    _update(dt);
-    // atualizar sistemas
-    Particles.update(dt);
-    Trails.update(dt);
-    Shake.update(dt);
-
-    // capturar amostras pro rastro
-    const P = Game.pac.pixel();
-    Trails.pushPac(P.px, P.py, Game.pac.dir?.a||0);
-    for(const g of Game.ghosts){
-      const G = g.pixel();
-      Trails.pushGhost(g, G.px, G.py);
+    // Power Mode Logic
+    if(powerModeTime > 0) {
+      powerModeTime--;
+      if(powerModeTime === 0) ghosts.forEach(g => g.scared = false);
+      else ghosts.forEach(g => g.scared = true);
     }
-  };
-})();
 
-// 2) Partículas e shake em colisões/comidas
-(function hookCollisionsParticles(){
-  const _eatAt = Dots.eatAt.bind(Dots);
-  Dots.eatAt = function(x,y){
-    const res = _eatAt(x,y);
-    const px = MAZE.cx(x), py = MAZE.cy(y);
-    if(res==='dot'){ Particles.pellet(px,py); }
-    if(res==='power'){ Particles.power(px,py); Shake.trigger(4, .18); }
-    return res;
-  };
-  const _tryEat = Fruits.tryEat.bind(Fruits);
-  Fruits.tryEat = function(px,py){
-    const before = this.list.length;
-    _tryEat(px,py);
-    if(this.list.length < before){ Particles.fruit(px,py); Shake.trigger(5, .18); }
-  };
-  const _death = GameOver.trigger.bind(GameOver);
-  GameOver.trigger = function(){
-    const P = Game.pac.pixel();
-    Particles.death(P.px,P.py);
-    Shake.trigger(10, .35);
-    _death();
-  };
-  // fantasma comido
-  const _doCollisions = doCollisions;
-  window.doCollisions = function(){
-    const prev = Game.ghosts.map(g=>({name:g.name,inPen:g.inPen, gx:g.gx, gy:g.gy, mode:g.mode}));
-    _doCollisions();
-    // se algum entrou no pen imediatamente (foi comido), poof
-    Game.ghosts.forEach((g,i)=>{
-      if(prev[i].mode!==GMode.FRIGHT && g.inPen && (g.gx===13 && (g.gy===4||g.gy===5))){
-        const pos = {x: MAZE.cx(prev[i].gx), y: MAZE.cy(prev[i].gy)};
-        Particles.ghostPoof(pos.x, pos.y);
-        Shake.trigger(6, .22);
+    ghosts.forEach(g => {
+      g.move();
+      g.draw();
+      
+      // Colisão Pacman x Fantasma
+      // Distância Euclidiana simples entre pixels
+      const dx = (g.tileX * TILE_SIZE) - (pacman.tileX * TILE_SIZE);
+      const dy = (g.tileY * TILE_SIZE) - (pacman.tileY * TILE_SIZE);
+      const dist = Math.hypot(dx, dy);
+      
+      if(dist < TILE_SIZE / 1.5) {
+        if(g.scared && !g.dead) {
+          // Comer Fantasma
+          g.dead = true;
+          g.scared = false;
+          score += 200;
+          Audio.playTone(800, 'sawtooth', 0.1);
+        } else if(!g.dead) {
+          // Game Over
+          gameOver();
+        }
       }
     });
-  };
+
+    // UI Update
+    document.getElementById('scoreVal').innerText = score;
+    document.getElementById('highVal').innerText = highScore;
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  function gameOver() {
+    gameRunning = false;
+    Audio.playTone(100, 'sawtooth', 0.5);
+    if(score > highScore) {
+      highScore = score;
+      localStorage.setItem('pacman_high', highScore);
+    }
+    document.getElementById('overlay').style.display = 'flex';
+    document.querySelector('#overlay h1').innerText = "GAME OVER";
+    document.getElementById('btn-start').innerText = "Tentar Novamente";
+  }
+
+  function startGame() {
+    Audio.init();
+    initLevel();
+    score = 0;
+    powerModeTime = 0;
+    gameRunning = true;
+    document.getElementById('overlay').style.display = 'none';
+    gameLoop();
+  }
+
+  // Inputs
+  function handleInput(key) {
+    if(key === 'ArrowUp' || key === 'w') pacman.nextDir = {x:0, y:-1};
+    if(key === 'ArrowDown' || key === 's') pacman.nextDir = {x:0, y:1};
+    if(key === 'ArrowLeft' || key === 'a') pacman.nextDir = {x:-1, y:0};
+    if(key === 'ArrowRight' || key === 'd') pacman.nextDir = {x:1, y:0};
+  }
+
+  window.addEventListener('keydown', e => handleInput(e.key));
+  document.getElementById('btn-start').addEventListener('click', startGame);
+
+  // Mobile
+  document.getElementById('btn-up').addEventListener('touchstart', (e)=>{ e.preventDefault(); handleInput('ArrowUp'); });
+  document.getElementById('btn-down').addEventListener('touchstart', (e)=>{ e.preventDefault(); handleInput('ArrowDown'); });
+  document.getElementById('btn-left').addEventListener('touchstart', (e)=>{ e.preventDefault(); handleInput('ArrowLeft'); });
+  document.getElementById('btn-right').addEventListener('touchstart', (e)=>{ e.preventDefault(); handleInput('ArrowRight'); });
+
 })();
-
-/*** ============== Pequeno polimento de desenho ============== ***/
-// realce de pellets próximos (brilham levemente)
-(function pelletProximityGlow(){
-  const _drawMaze = drawMaze;
-  window.drawMaze = function(){
-    _drawMaze();
-    const P = Game.pac.pixel();
-    CTX.save();
-    CTX.globalCompositeOperation='lighter';
-    Dots.pellets.forEach(s=>{
-      const [x,y]=s.split(',').map(Number);
-      const cx=MAZE.cx(x), cy=MAZE.cy(y);
-      const d = Math.hypot(cx-P.px, cy-P.py);
-      if(d < MAZE.TILE*4.2){
-        const a = clamp(1 - d/(MAZE.TILE*4.2), 0, 1) * 0.45;
-        CTX.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
-        CTX.beginPath(); CTX.arc(cx,cy, MAZE.rDot*1.6, 0, TAU); CTX.fill();
-      }
-    });
-    CTX.restore();
-  };
-})();
-
-/*** ============== Dicas visuais: modo atual (HUD sutil) ============== ***/
-(function modeHint(){
-  const _setMode = Game.setMode.bind(Game);
-  Game.setMode = function(m){
-    _setMode(m);
-    const name = (m===0?'Scatter':m===1?'Chase':'Fright');
-    toast('Modo: '+name, 0.8);
-  };
-})();
-
-/*** ============== Nota de desempenho ============== ***/
-// Em aparelhos fracos, se cair FPS: use “Qualidade: Baixa” e “CRT/Glow: Off” no painel.
-
 </script>
-
-<!-- ===========================
-     PAC-MAN REMASTERED+ (ULTRA)
-     Parte 5/6 — Clima, Cutscenes, Achievements, Replays, Editor
-     =========================== -->
-<script>
-'use strict';
-
-/*** ============== Clima Dinâmico ============== ***/
-const Weather = {
-  type: 'none', // 'rain', 'fog', 'clear'
-  particles: [],
-  lastChange: 0,
-  changeInterval: 45, // segundos
-  init(){
-    this.type = this.randomType();
-    this.spawnInitial();
-  },
-  randomType(){
-    const opts = ['none','clear','rain','fog'];
-    return opts[Math.floor(Math.random()*opts.length)];
-  },
-  spawnInitial(){
-    this.particles = [];
-    if(this.type==='rain'){
-      for(let i=0;i<80;i++){
-        this.particles.push(this.makeDrop());
-      }
-    }
-    if(this.type==='fog'){
-      for(let i=0;i<20;i++){
-        this.particles.push(this.makeFog());
-      }
-    }
-  },
-  makeDrop(){
-    return {x:Math.random()*W, y:Math.random()*H, spd:150+Math.random()*100, len:8+Math.random()*4};
-  },
-  makeFog(){
-    return {x:Math.random()*W, y:Math.random()*H, r:80+Math.random()*60, dx:(Math.random()-.5)*10, dy:(Math.random()-.5)*10};
-  },
-  update(dt){
-    this.lastChange += dt;
-    if(this.lastChange > this.changeInterval){
-      this.type = this.randomType();
-      this.spawnInitial();
-      this.lastChange = 0;
-    }
-    if(this.type==='rain'){
-      for(let d of this.particles){
-        d.y += d.spd*dt;
-        if(d.y > H) { d.y = -d.len; d.x = Math.random()*W; }
-      }
-    }
-    if(this.type==='fog'){
-      for(let f of this.particles){
-        f.x += f.dx*dt; f.y += f.dy*dt;
-        if(f.x < -f.r) f.x = W+f.r;
-        if(f.x > W+f.r) f.x = -f.r;
-        if(f.y < -f.r) f.y = H+f.r;
-        if(f.y > H+f.r) f.y = -f.r;
-      }
-    }
-  },
-  draw(){
-    if(this.type==='rain'){
-      CTX.save();
-      CTX.strokeStyle='rgba(150,150,255,0.3)';
-      CTX.lineWidth=1;
-      for(let d of this.particles){
-        CTX.beginPath();
-        CTX.moveTo(d.x, d.y);
-        CTX.lineTo(d.x, d.y+d.len);
-        CTX.stroke();
-      }
-      CTX.restore();
-    }
-    if(this.type==='fog'){
-      CTX.save();
-      CTX.globalAlpha = 0.05;
-      CTX.fillStyle='#ccc';
-      for(let f of this.particles){
-        CTX.beginPath();
-        CTX.arc(f.x, f.y, f.r, 0, Math.PI*2);
-        CTX.fill();
-      }
-      CTX.restore();
-    }
-  }
-};
-
-/*** ============== Cutscene de Início de Fase ============== ***/
-const Cutscene = {
-  active: false,
-  t: 0,
-  dur: 3,
-  start(){
-    this.active = true; this.t = 0;
-    Game.freeze = true;
-  },
-  update(dt){
-    if(!this.active) return;
-    this.t += dt;
-    if(this.t > this.dur){
-      this.active = false;
-      Game.freeze = false;
-    }
-  },
-  draw(){
-    if(!this.active) return;
-    CTX.save();
-    CTX.fillStyle='rgba(0,0,0,0.6)';
-    CTX.fillRect(0,0,W,H);
-    CTX.fillStyle='#fff';
-    CTX.font = `${MAZE.TILE}px Arial`;
-    CTX.textAlign='center';
-    CTX.fillText(`Fase ${Game.level}`, W/2, H/2);
-    CTX.restore();
-  }
-};
-
-/*** ============== Achievements ============== ***/
-const Achievements = {
-  list: [
-    {id:'firstFruit', name:'Primeira Fruta', desc:'Pegue uma fruta pela primeira vez', done:false},
-    {id:'ghostCombo', name:'Combo Fantasma', desc:'Coma 4 fantasmas no mesmo power', done:false},
-    {id:'marathon', name:'Maratona', desc:'Complete 5 fases sem morrer', done:false}
-  ],
-  unlock(id){
-    const ach = this.list.find(a=>a.id===id);
-    if(ach && !ach.done){
-      ach.done = true;
-      toast(`🏆 Conquista: ${ach.name}`);
-      localStorage.setItem('pacman_achievements', JSON.stringify(this.list));
-    }
-  },
-  load(){
-    const s = localStorage.getItem('pacman_achievements');
-    if(s) this.list = JSON.parse(s);
-  },
-  drawHUD(){
-    CTX.save();
-    CTX.fillStyle='#fff';
-    CTX.font='12px Arial';
-    let y=20;
-    for(let a of this.list){
-      CTX.globalAlpha = a.done?1:0.3;
-      CTX.fillText(`🏆 ${a.name}`, 10, y);
-      y+=14;
-    }
-    CTX.globalAlpha=1;
-    CTX.restore();
-  }
-};
-
-/*** ============== Replays (últimos 30s) ============== ***/
-const Replays = {
-  buffer: [],
-  maxTime: 30,
-  record: true,
-  addState(){
-    if(!this.record) return;
-    this.buffer.push(JSON.stringify({
-      pac: Game.pac, ghosts: Game.ghosts, pellets: Dots.pellets,
-      score: Game.score, lives: Game.lives
-    }));
-    if(this.buffer.length > this.maxTime*60) this.buffer.shift();
-  },
-  play(){
-    console.log("Replaying...", this.buffer.length, "frames");
-    // Aqui poderia implementar playback real...
-  }
-};
-
-/*** ============== Mini Editor de Labirinto ============== ***/
-const MazeEditor = {
-  active: false,
-  init(){
-    window.addEventListener('keydown', e=>{
-      if(e.key==='E') this.active = !this.active;
-    });
-    canvas.addEventListener('click', e=>{
-      if(!this.active) return;
-      const gx = Math.floor((e.offsetX - MAZE.offX) / MAZE.TILE);
-      const gy = Math.floor((e.offsetY - MAZE.offY) / MAZE.TILE);
-      if(gx>=0 && gx<MAZE.COLS && gy>=0 && gy<MAZE.ROWS){
-        MAZE.raw[gy][gx] = MAZE.raw[gy][gx]===1?0:1;
-      }
-    });
-  },
-  draw(){
-    if(!this.active) return;
-    CTX.save();
-    CTX.strokeStyle='rgba(255,0,0,0.5)';
-    for(let y=0;y<MAZE.ROWS;y++){
-      for(let x=0;x<MAZE.COLS;x++){
-        CTX.strokeRect(MAZE.offX+x*MAZE.TILE, MAZE.offY+y*MAZE.TILE, MAZE.TILE, MAZE.TILE);
-      }
-    }
-    CTX.restore();
-  }
-};
-
-/*** ============== Integrando nos loops existentes ============== ***/
-(function integrateExtras(){
-  const _update = SceneRun.update.bind(SceneRun);
-  SceneRun.update = function(dt){
-    _update(dt);
-    Weather.update(dt);
-    Cutscene.update(dt);
-    Replays.addState();
-  };
-  const _draw = SceneRun.draw.bind(SceneRun);
-  SceneRun.draw = function(){
-    _draw();
-    Weather.draw();
-    Cutscene.draw();
-    Achievements.drawHUD();
-    MazeEditor.draw();
-  };
-})();
-
-// Inicializações extras
-Weather.init();
-Achievements.load();
-MazeEditor.init();
-
-</script>
-
-<!-- ===========================
-     PAC-MAN REMASTERED+ (ULTRA)
-     Parte 6/6 — Menus, Save/Load, Opções rápidas e Modo Turbo
-     =========================== -->
-<script>
-'use strict';
-
-/*
-O que esta parte adiciona:
-- Menu Principal (Iniciar, Continuar, Opções, Créditos).
-- Menu de Pausa com acesso rápido às opções e “Reiniciar fase”.
-- Save/Load de progresso (slot único “AutoSave” no início de cada fase).
-- Modo Turbo: segurar “Espaço/Shift/CTRL” ou botão ⚡ no touch — tem barra de stamina, efeito de aceleração e cooldown.
-- Pequenos acabamentos de UX (mensagens, confirmações, créditos, etc).
-*/
-
-/*** ================== SISTEMA DE SAVE/LOAD ================== ***/
-// Salvamos no começo de cada fase: nível, score, vidas, e seed do layout.
-// Ao carregar, re-aplicamos a config da fase e reiniciamos a fase com os mesmos score/vidas.
-const SAVEGAME_KEY = 'pmultra_autosave_v1';
-function autoSave(){
-  const data = {
-    name: SAVE.name||'Player',
-    level: WORLD.level,
-    score: WORLD.score,
-    lives: WORLD.lives,
-    date: Date.now()
-  };
-  LS.set(SAVEGAME_KEY, data);
-}
-function canContinue(){ return !!LS.get(SAVEGAME_KEY,null); }
-function loadSave(){
-  const s = LS.get(SAVEGAME_KEY,null);
-  if(!s) return false;
-  SAVE.name = s.name||SAVE.name;
-  WORLD.level = s.level||1;
-  WORLD.score = s.score||0;
-  WORLD.lives = s.lives||3;
-  WORLD.setHud();
-  Game.applyLevelParams();
-  Game.resetPositions(false);
-  toast(`Continuado: Fase ${WORLD.level}`, 1.2);
-  return true;
-}
-// Hook: quando trocar de fase (Parte 3 já atualiza), salvar no início
-(function hookAutoSaveOnEnter(){
-  const _enter = SceneRun.enter.bind(SceneRun);
-  SceneRun.enter = function(){
-    _enter();
-    autoSave();
-  };
-  const _reset = SceneRun.reset.bind(SceneRun);
-  SceneRun.reset = function(){
-    _reset();
-    autoSave();
-  };
-})();
-
-/*** ================== MODO TURBO (BOOST) ================== ***/
-// Segure Espaço/Shift/CTRL ou botão ⚡ (touch).
-// Tem stamina que gasta e recarrega. Aplica leve FOV e acelera Pac.
-const Turbo = {
-  active:false,
-  staminaMax: 100,
-  stamina: 100,
-  drain: 30,      // /s
-  regen: 18,      // /s
-  boost: 1.35,    // multiplicador de velocidade do Pac
-  cooldown: 0,    // s restante
-  cdTime: 0.6,    // cooldown após zerar stamina
-  use(dt){
-    if(this.cooldown>0){ this.active=false; return; }
-    if(this.stamina<=0){ this.active=false; this.cooldown=this.cdTime; return; }
-    this.active=true;
-    this.stamina -= this.drain*dt;
-    if(this.stamina<=0){ this.stamina=0; this.active=false; this.cooldown=this.cdTime; }
-  },
-  recover(dt){
-    this.active=false;
-    this.stamina = Math.min(this.staminaMax, this.stamina + this.regen*dt);
-  },
-  tick(dt, want){
-    if(this.cooldown>0) this.cooldown = Math.max(0, this.cooldown-dt);
-    if(want) this.use(dt); else this.recover(dt);
-  },
-  bar(ctx=CTX){
-    // Barra na HUD (abaixo do painel superior)
-    const w = Math.min(420, Math.max(160, W*0.36));
-    const x = (W - w)/2, y = 8 + 36; // logo abaixo dos tags da HUD
-    ctx.save();
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = '#0008'; ctx.fillRect(x, y, w, 10);
-    ctx.strokeStyle = '#fff3'; ctx.strokeRect(x, y, w, 10);
-    const k = this.stamina/this.staminaMax;
-    const col = this.cooldown>0? '#888' : (this.active? '#5dfdcb' : '#2dd4bf');
-    ctx.fillStyle = col;
-    ctx.fillRect(x+1, y+1, (w-2)*k, 8);
-    if(this.cooldown>0){
-      ctx.fillStyle='#fff'; ctx.font='bold 10px system-ui,Arial';
-      ctx.textAlign='center'; ctx.fillText('Cooldown...', x+w/2, y-2+18);
-    }
-    ctx.restore();
-  }
-};
-
-// plugar o Turbo no update/draw do SceneRun
-(function hookTurbo(){
-  const _update = SceneRun.update.bind(SceneRun);
-  SceneRun.update = function(dt){
-    // antes de mover, ajusta velocidade do Pac dinamicamente
-    const wantBoost = !!(Input.boost);
-    Turbo.tick(dt, wantBoost);
-    const base = levelConfig(WORLD.level).pacSpeed; // pega base atual
-    Game.pac.speed = Turbo.active ? base*Turbo.boost : base;
-
-    _update(dt); // move entidades normalmente
-
-    // reset flag “wantBoost” de toque (botão ⚡ dispara um frame)
-    Input.boost = false;
-  };
-  const _draw = SceneRun.draw.bind(SceneRun);
-  SceneRun.draw = function(){
-    _draw();
-    Turbo.bar(CTX);
-  };
-})();
-
-/*** ================ MENU PRINCIPAL & PAUSA ================= */
-const Menus = (()=>{
-
-  // cria fundo semitransparente e container central
-  function makeOverlay(id){
-    const wrap = document.createElement('div');
-    wrap.id = id;
-    wrap.style.position='fixed';
-    wrap.style.inset='0';
-    wrap.style.background='rgba(0,0,0,.65)';
-    wrap.style.display='none';
-    wrap.style.zIndex='80';
-    wrap.style.backdropFilter='blur(2px)';
-    wrap.innerHTML = `
-      <div style="
-        position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-        background:#000c;border:1px solid #fff3;border-radius:14px;
-        padding:1rem 1.2rem;max-width:min(90vw,560px);color:#fff;
-        text-align:center;box-shadow:0 10px 50px #000a;">
-        <h1 style="margin:.2rem 0 .6rem 0;font-size:clamp(22px,4vw,36px)">PAC-MAN: Remastered+ <small style="opacity:.6">Ultra</small></h1>
-        <div id="${id}_content"></div>
-      </div>`;
-    document.body.appendChild(wrap);
-    return wrap;
-  }
-
-  const main = makeOverlay('menuMain');
-  const pause = makeOverlay('menuPause');
-  const credits = makeOverlay('menuCredits');
-
-  main.querySelector('#menuMain_content').innerHTML = `
-    <div class="grid" style="gap:.6rem">
-      <button class="btn" id="m_start">▶️ Iniciar</button>
-      <button class="btn" id="m_continue" ${canContinue()?'':'disabled'}>↩️ Continuar</button>
-      <button class="btn" id="m_opts">⚙️ Opções</button>
-      <button class="btn" id="m_credits">ℹ️ Créditos</button>
-    </div>
-    <div class="muted" style="margin-top:.6rem">Controles: ⬅️➡️⬆️⬇️ mover • P pausa • R reiniciar • Espaço/Shift/CTRL = TURBO</div>
-  `;
-
-  pause.querySelector('#menuPause_content').innerHTML = `
-    <h2 style="margin:.1rem 0 .6rem 0">Pausado</h2>
-    <div class="grid" style="gap:.6rem">
-      <button class="btn" id="p_resume">▶️ Retomar</button>
-      <button class="btn" id="p_restart">↺ Reiniciar Fase</button>
-      <button class="btn" id="p_opts">⚙️ Opções</button>
-      <button class="btn" id="p_quit">⏹️ Menu Principal</button>
-    </div>
-  `;
-
-  credits.querySelector('#menuCredits_content').innerHTML = `
-    <h2 style="margin:.1rem 0 .6rem 0">Créditos</h2>
-    <div style="text-align:left;max-height:46vh;overflow:auto">
-      <p>Projeto fã sem fins lucrativos.<br/>
-      Código, efeitos e áudio procedural (WebAudio): você.<br/>
-      Inspiração: Pac-Man (Namco, 1980). Este é um tributo educativo.</p>
-      <p>Recursos: <em>scanlines</em> e bloom fakes, partículas e trilhas geradas em tempo real, clima e cenas.</p>
-      <p>Agradecimentos: comunidade retro, devs web, e você testando esse jogão.</p>
-    </div>
-    <div style="margin-top:.6rem">
-      <button class="btn" id="c_back">Voltar</button>
-    </div>
-  `;
-
-  // mostrar/ocultar
-  function show(el){ el.style.display='block'; Scenes.paused=true; music.stop(); }
-  function hide(el){ el.style.display='none'; Scenes.paused=false; if(AC) music.play(); }
-
-  // Binds MAIN
-  main.querySelector('#m_start').onclick = ()=>{
-    hide(main);
-    Scenes.start(SceneRun); // já chama enter/reset e autosave via hooks
-  };
-  main.querySelector('#m_continue').onclick = ()=>{
-    if(loadSave()){
-      hide(main);
-      Scenes.start(SceneRun);
-    } else {
-      toast('Nenhum save encontrado.');
-    }
-  };
-  main.querySelector('#m_opts').onclick = ()=>{
-    PANEL.configBox.style.display = PANEL.configBox.style.display==='grid' ? 'none':'grid';
-  };
-  main.querySelector('#m_credits').onclick = ()=> show(credits);
-
-  // Binds PAUSE
-  pause.querySelector('#p_resume').onclick = ()=> hide(pause);
-  pause.querySelector('#p_restart').onclick = ()=>{
-    if(confirm('Reiniciar a fase atual?')){
-      Scenes.resetRunRequested = true;
-      hide(pause);
-    }
-  };
-  pause.querySelector('#p_opts').onclick = ()=>{
-    PANEL.configBox.style.display = PANEL.configBox.style.display==='grid' ? 'none':'grid';
-  };
-  pause.querySelector('#p_quit').onclick = ()=>{
-    if(confirm('Voltar ao Menu Principal? O progresso não salvo na fase será perdido.')){
-      show(main);
-      hide(pause);
-    }
-  };
-
-  credits.querySelector('#c_back').onclick = ()=> hide(credits);
-
-  // Atalhos
-  addEventListener('keydown',(e)=>{
-    if(e.key==='Escape'){
-      if(main.style.display==='block'){ hide(main); Scenes.start(SceneRun); }
-      else if(pause.style.display==='block'){ hide(pause); }
-      else { show(pause); }
-    }
-  });
-
-  // Inicial: entrar no Menu Principal
-  show(main);
-
-  // Expor API
-  return {
-    showMain: ()=>show(main),
-    showPause: ()=>show(pause),
-    hidePause: ()=>hide(pause),
-  };
-})();
-
-/*** ================ INTEGRAÇÃO COM PAUSA EXISTENTE ================= */
-// Já tínhamos Scenes.togglePause; vamos sincronizar com o menu de pausa.
-(function syncPauseMenu(){
-  const _toggle = Scenes.togglePause.bind(Scenes);
-  Scenes.togglePause = function(){
-    // alterna e exibe/oculta menu
-    const to = !this.paused;
-    _toggle();
-    if(to) Menus.showPause(); else Menus.hidePause();
-  };
-  // Botão da HUD já chama togglePause (mantido).
-})();
-
-/*** ================ POLIMENTO FINAL ================= */
-// 1) Ajuste das mensagens de vitória/avanço para salvar automaticamente (já salvamos no enter).
-(function polishWin(){
-  const _checkWin = checkWin;
-  window.checkWin = function(){
-    // antes de trocar de fase, deixa Part 3 cuidar e aqui só garantimos autosave pós-enter
-    _checkWin();
-  };
-})();
-
-// 2) Mensagem ao alterar filtros (reforçar visual)
-(function hintPost(){
-  const _cycle = cyclePost;
-  window.cyclePost = function(){ _cycle(); toast('Experimente com a Qualidade/CRT/Glow no painel ➜', 1.8); };
-})();
-
-// 3) Touch: botão ⚡ vira “hold” (pressionar mantém boost)
-(function touchBoostHold(){
-  let holding=false;
-  TOUCH.boost.onpointerdown = ()=>{ holding=true; Input.boost=true; };
-  TOUCH.boost.onpointerup   = ()=>{ holding=false; };
-  TOUCH.boost.onpointercancel=()=>{ holding=false; };
-  const _update = SceneRun.update.bind(SceneRun);
-  SceneRun.update = function(dt){
-    if(holding) Input.boost = true;
-    _update(dt);
-  };
-})();
-
-// 4) Pequena vinheta ao iniciar fase (já tem cutscene; aqui só reforço de feedback)
-(function phaseTitlePop(){
-  const _enter = SceneRun.enter.bind(SceneRun);
-  SceneRun.enter = function(){
-    _enter();
-    showCenter(`Fase ${WORLD.level}`);
-  };
-})();
-
-// 5) Proteção: se FPS cair muito, reduzir efeitos automaticamente (sugestão gentil)
-(function autoPerfHint(){
-  let lowFpsTimer=0;
-  const _update = SceneRun.update.bind(SceneRun);
-  SceneRun.update = function(dt){
-    _update(dt);
-    if(Debug.fps && Debug.fps < 35){
-      lowFpsTimer += dt;
-      if(lowFpsTimer>3){
-        lowFpsTimer=0;
-        toast('FPS baixo: reduza Qualidade ou desative CRT/Glow nas opções.', 2.4);
-      }
-    } else {
-      lowFpsTimer = Math.max(0, lowFpsTimer-dt);
-    }
-  };
-})();
-
-</script>
+</body>
+</html>

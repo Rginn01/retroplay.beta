@@ -1,1063 +1,372 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="retro">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RetroPlay — Clássicos Remasterizados</title>
-  <meta name="description" content="Reviva Pac-Man, Tetris, Space Invaders e outros clássicos — remasterizados para web." />
-  <meta name="theme-color" content="#0f380f" />
-  <meta name="color-scheme" content="dark light" />
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
-
-  <!-- (opcional futuramente) Manifest / icons
-  <link rel="manifest" href="site.webmanifest">
-  <link rel="icon" href="icon.png">
-  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>RetroPlay Hub 2.0</title>
+  <meta name="theme-color" content="#0a0a12" />
+  
+  <!-- Fontes Arcade -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
 
   <style>
-    /* ========= PARTE 1/5 — Tokens, Reset, Layout base, Header e Grid (início) ========= */
-
-    /* ===== Tokens de tema ===== */
-    :root{
-      /* Tipos */
-      --ff-display:'Press Start 2P',system-ui,sans-serif;
-      --ff-body:'VT323',ui-monospace,monospace;
-
-      /* Retro */
-      --retro-bg:#0f380f; --retro-card:#306230; --retro-accent:#8bac0f; --retro-text:#f8f8f8; --retro-shadow:#0f0f0f;
-
-      /* Neon */
-      --neon-bg:#0b1020; --neon-card:#121a30; --neon-accent:#67f2ff; --neon-text:#e6f1ff; --neon-shadow:#0a0f24;
-
-      /* Noir (alto contraste, sutilmente “filme”) */
-      --noir-bg:#0b0b0c; --noir-card:#171719; --noir-accent:#d0d0d0; --noir-text:#f2f2f2; --noir-shadow:#000;
-
-      /* Geometria & efeitos */
-      --radius:16px;
-      --shadow-offset:14px;            /* alto contraste sempre ativo */
---ring:3px dashed;
---focus:#ffd24d;                 /* muda por tema via [data-theme] */
---shadow-color:#000;
---crt-opacity:0.25;              /* CRT sempre ligado (scanlines leves) */
---blur-bg: saturate(130%) blur(1px);
---card-grad-top: color-mix(in oklab, var(--accent) 12%, transparent);
-
-
-      /* Cores “ativas” (inicial: retro) */
-      --bg:var(--retro-bg);
-      --card:var(--retro-card);
-      --text:var(--retro-text);
-      --accent:var(--retro-accent);
-      --shadow-color:var(--retro-shadow);
+    :root {
+      --bg: #05050a;
+      --card-bg: rgba(20, 20, 35, 0.6);
+      --glass: rgba(255, 255, 255, 0.05);
+      --border: rgba(255, 255, 255, 0.1);
+      --neon-blue: #00f3ff;
+      --neon-pink: #ff00ff;
+      --neon-gold: #ffd700;
+      --text-main: #e0e0e0;
     }
 
-
-
-    /* Tema: Neon */
-    html[data-theme="neon"]{
-      --bg:var(--neon-bg);
-      --card:var(--neon-card);
-      --text:var(--neon-text);
-      --accent:var(--neon-accent);
-      --shadow-color:var(--neon-shadow);
-      --focus:#9bf6ff;
-      --blur-bg:saturate(130%) blur(1px);
-      --card-grad-top: color-mix(in oklab, var(--accent) 10%, transparent);
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: 'Rajdhani', sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
     }
 
-    /* Tema: Noir */
-    html[data-theme="noir"]{
-      --bg:var(--noir-bg);
-      --card:var(--noir-card);
-      --text:var(--noir-text);
-      --accent:var(--noir-accent);
-      --shadow-color:var(--noir-shadow);
-      --focus:#e5e5e5;
-      --blur-bg:saturate(100%) blur(0.5px);
-      --card-grad-top: color-mix(in oklab, var(--accent) 6%, transparent);
+    /* Fundo Animado (Canvas) fica fixo atrás */
+    #bgCanvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: -1;
+      opacity: 0.6;
     }
 
-    /* ===== Reset & base ===== */
-    *,*::before,*::after{box-sizing:border-box}
-    :where(html,body){height:100%}
-    :where(body){
-      margin:0;
-      font-family:var(--ff-body);
-      color:var(--text);
-      background:
-        radial-gradient(1200px 800px at 20% 10%, rgba(255,255,255,.05), transparent 60%),
-        radial-gradient(900px 600px at 80% 30%, rgba(255,255,255,.06), transparent 65%),
-        var(--bg);
-      min-height:100svh;
-      display:grid;
-      grid-template-rows:auto 1fr auto;
-      padding:clamp(8px,1.2vw,16px);
+    /* Scanlines Overlay (Efeito TV Antiga sutil) */
+    .scanlines {
+      position: fixed; inset: 0; pointer-events: none; z-index: 999;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+      background-size: 100% 4px;
+      opacity: 0.15;
     }
 
-    /* Links de “pular para conteúdo” (a11y) */
-    .skip-link{
-      position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden;
-    }
-    .skip-link:focus{
-      position:fixed; left:16px; top:16px; width:auto; height:auto;
-      padding:10px 14px; background:var(--card); color:var(--text);
-      outline:var(--ring) var(--focus); border-radius:12px; z-index:1000;
+    /* Header */
+    header {
+      padding: 40px 20px 20px;
+      text-align: center;
+      position: relative;
+      z-index: 10;
     }
 
-    /* ===== Header ===== */
-    .site-header{
-      text-align:center;
-      margin-bottom:clamp(8px,2.5vw,22px);
-      animation:fade-in .6s ease both;
-    }
-    .brand{
-      display:inline-flex; align-items:center; gap:12px;
-      padding:6px 10px;
-      background: color-mix(in oklab, var(--card) 85%, black 15%);
-      border:2px solid color-mix(in oklab, var(--accent) 55%, black 45%);
-      border-radius:14px;
-      box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--shadow-color);
-    }
-    .logo{font-size:clamp(24px,3.5vw,40px)}
-    .title{
-      margin:0;
-      font-family:var(--ff-display);
-      font-size:clamp(22px,3.8vw,42px);
-      color:var(--accent);
-      text-shadow:3px 3px var(--shadow-color);
-      letter-spacing:.5px;
-    }
-    .tagline{
-      margin:10px 0 14px;
-      font-size:clamp(16px,2.6vw,22px);
-      opacity:.9;
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      background: linear-gradient(to bottom, #fff, #aaa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 15px rgba(0, 243, 255, 0.5));
     }
 
-    /* ===== Toolbar (busca + toggles) ===== */
-    .toolbar{
-      display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:center;
-    }
-    .search{
-      display:flex; align-items:center; gap:8px;
-      padding:6px 10px;
-      background: color-mix(in oklab, var(--card) 88%, black 12%);
-      border:2px solid color-mix(in oklab, var(--accent) 50%, black 50%);
-      border-radius:12px;
-      box-shadow: 6px 6px 0 var(--shadow-color);
-      backdrop-filter: var(--blur-bg);
-    }
-    .search input{
-      font:inherit; font-size:clamp(16px,2.2vw,20px); border:0; outline:none; background:transparent; color:var(--text);
-      min-width:min(50vw,360px);
-    }
-    .toggles{display:inline-flex; gap:10px; align-items:center}
-
-    .btn, .switch{user-select:none; cursor:pointer}
-    .btn{
-      font:inherit; font-weight:700; color:var(--text);
-      background: linear-gradient(180deg, color-mix(in oklab, var(--card) 92%, black 8%), color-mix(in oklab, var(--card) 78%, black 22%));
-      border:2px solid color-mix(in oklab, var(--accent) 60%, black 40%);
-      padding:8px 12px; border-radius:12px;
-      box-shadow: 6px 6px 0 var(--shadow-color);
-      transition: transform .12s ease, box-shadow .12s ease, border-color .2s ease;
-    }
-    .btn:hover{ transform: translate(-2px,-2px); box-shadow: 8px 8px 0 var(--shadow-color); }
-    .btn:active{ transform: translate(1px,1px); box-shadow: 3px 3px 0 var(--shadow-color); }
-    .btn:focus-visible{ outline:var(--ring) var(--focus); outline-offset:4px; }
-
-    .switch{
-      display:inline-flex; gap:8px; align-items:center;
-      background: color-mix(in oklab, var(--card) 92%, black 8%);
-      border:2px solid color-mix(in oklab, var(--accent) 55%, black 45%);
-      padding:6px 10px; border-radius:999px;
-      box-shadow:6px 6px 0 var(--shadow-color);
-    }
-    .switch input{ accent-color:var(--accent); }
-
-    /* ===== Conteúdo base ===== */
-    .content{ width:min(1200px,100%); margin:0 auto; }
-
-    /* ===== Grid de cards (início) ===== */
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(clamp(180px, 30vw, 260px), 1fr));
-      gap:clamp(12px, 2vw, 20px);
-      padding:clamp(6px,1.2vw,12px);
+    .subtitle {
+      color: var(--neon-blue);
+      font-size: 1.2rem;
+      letter-spacing: 2px;
+      margin-top: 5px;
+      text-shadow: 0 0 10px var(--neon-blue);
     }
 
-    .card {
-  position: relative; /* garante contexto para posicionamento do botão */
-}
-
-.card .fav-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  background: rgba(0,0,0,0.6);
-  color: var(--branco);
-  border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  font-size: 16px;
-  cursor: pointer;
-  z-index: 5; /* fica acima da capa */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s, transform 0.2s;
-}
-
-.card .fav-btn:hover {
-  background: rgba(255,255,255,0.2);
-  transform: scale(1.1);
-}
-
-
-    .card{
-      position:relative;
-      display:grid; grid-template-rows:auto 1fr; gap:8px;
-      text-decoration:none; color:var(--text);
-      background:
-        linear-gradient(180deg, var(--card-grad-top), transparent 30%),
-        linear-gradient(180deg, color-mix(in oklab, var(--card) 92%, black 8%), color-mix(in oklab, var(--card) 78%, black 22%));
-      border:2px solid color-mix(in oklab, var(--accent) 50%, black 50%);
-      border-radius:var(--radius);
-      padding:clamp(12px,2.2vw,18px);
-      box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--shadow-color);
-      transform: translateZ(0);
-      transition: transform .16s ease, box-shadow .16s ease, border-color .22s ease, background .22s ease;
-      will-change: transform, box-shadow;
-      overflow:hidden;
-    }
-    .card::after{ /* brilho sutil ao hover */
-      content:"";
-      position:absolute; inset:auto -20% 0 -20%; height:45%;
-      background: radial-gradient(60% 80% at 50% 100%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 60%);
-      opacity:.0; pointer-events:none; transition:opacity .25s ease;
-    }
-    .card:hover{
-      transform: translate(-4px, -4px) rotateZ(-0.2deg);
-      box-shadow: calc(var(--shadow-offset) + 4px) calc(var(--shadow-offset) + 4px) 0 var(--shadow-color);
-    }
-    .card:hover::after{ opacity:.35; }
-    .card:active{
-      transform: translate(-1px, -1px);
-      box-shadow: calc(var(--shadow-offset) / 2) calc(var(--shadow-offset) / 2) 0 var(--shadow-color);
-    }
-    .card:focus-visible{ outline:var(--ring) var(--focus); outline-offset:4px; }
-
-    .card h2{
-      font-family:var(--ff-display);
-      font-size:clamp(16px,2.6vw,20px);
-      margin:0 0 4px;
-      color:var(--accent);
-      text-shadow:2px 2px var(--shadow-color);
-      letter-spacing:.4px;
-    }
-    .card p{ margin:0; font-size:clamp(15px,2.2vw,18px); opacity:.95; line-height:1.15; }
-
-        /* ===== Favoritos (estrela) ===== */
-    .fav-btn{
-      position:absolute; top:8px; right:8px;
-      display:inline-grid; place-items:center;
-      width:34px; height:34px;
-      border-radius:999px;
-      font-size:18px; line-height:1;
-      color:var(--text);
-      background: color-mix(in oklab, var(--card) 92%, black 8%);
-      border:2px solid color-mix(in oklab, var(--accent) 55%, black 45%);
-      box-shadow: 4px 4px 0 var(--shadow-color);
-      cursor:pointer; user-select:none;
-      transition: transform .12s ease, box-shadow .12s ease, background .2s ease;
-    }
-    .fav-btn:hover{ transform: translate(-1px,-1px); box-shadow: 6px 6px 0 var(--shadow-color); }
-    .fav-btn:active{ transform: translate(1px,1px); box-shadow: 2px 2px 0 var(--shadow-color); }
-    .fav-btn:focus-visible{ outline: var(--ring) var(--focus); outline-offset:3px; }
-
-    /* Estado favoritado visual (btn) */
-    .fav-btn[aria-pressed="true"]{
-      background: color-mix(in oklab, var(--accent) 25%, var(--card));
-      border-color: color-mix(in oklab, var(--accent) 80%, black 20%);
-      text-shadow: 0 0 6px color-mix(in oklab, var(--accent) 75%, white 25%);
-    }
-
-    /* Destaque do card quando favoritado */
-    .card[data-fav="1"]{
-      border-color: color-mix(in oklab, var(--accent) 70%, black 30%);
-      box-shadow: calc(var(--shadow-offset) + 2px) calc(var(--shadow-offset) + 2px) 0 var(--shadow-color), 0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent);
-    }
-
-
-        /* ===== Capas 8-bit (CSS puro) ===== */
-    .cover{
-      width:100%;
-      aspect-ratio: 4 / 3;
-      border-radius:8px;
-      background-color:var(--accent);
-      margin-bottom:8px;
-      box-shadow: inset 0 0 0 2px var(--shadow-color);
-      image-rendering: pixelated;
-      position:relative;
-      overflow:hidden;
-    }
-
-        /* ===== Capas 8-bit — animações opcionais ===== */
-    .card .cover{
-      transition: transform .25s ease, box-shadow .25s ease, filter .25s ease;
-      will-change: transform, box-shadow, filter;
-      /* máscara leve de scanlines dentro da capa */
+    /* Barra de Busca */
+    .search-container {
+      margin: 30px auto;
+      max-width: 600px;
       position: relative;
     }
-    /* “levantar” a capa no hover do card */
-    .card:hover .cover{
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: inset 0 0 0 2px var(--shadow-color), 0 6px 0 var(--shadow-color);
-      filter: saturate(120%);
+
+    .search-input {
+      width: 100%;
+      padding: 15px 25px;
+      border-radius: 50px;
+      border: 1px solid var(--neon-blue);
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+      transition: 0.3s;
     }
 
-    /* varredura vertical (sweep) suave dentro da capa */
-    .card .cover::after{
-      content:"";
-      position:absolute; inset:0;
-      background:
-        linear-gradient(
-          180deg,
-          rgba(255,255,255,0) 0%,
-          rgba(255,255,255,.16) 12%,
-          rgba(255,255,255,0) 24%
-        );
-      mix-blend-mode:soft-light;
-      opacity:0; /* só aparece no hover para não poluir */
-      pointer-events:none;
-    }
-    .card:hover .cover::after{
-      opacity:.8;
-      animation: cover-sweep 1.6s ease-in-out both;
+    .search-input:focus {
+      outline: none;
+      box-shadow: 0 0 25px rgba(0, 243, 255, 0.5);
+      background: rgba(0, 0, 0, 0.8);
     }
 
-    /* brilho/“sparkles” bem discretos no topo da capa */
-    .card .cover::before{
-      content:"";
-      position:absolute; left:0; right:0; top:0; height:34%;
-      background:
-        radial-gradient(40px 12px at 20% 30%, rgba(255,255,255,.25), transparent 70%),
-        radial-gradient(30px 10px at 70% 20%, rgba(255,255,255,.18), transparent 70%);
-      mix-blend-mode:screen;
-      opacity:.0;
-      pointer-events:none;
-      transition:opacity .25s ease;
-    }
-    .card:hover .cover::before{ opacity:.35; }
-
-    /* variações com micro-movimento sutil por tipo */
-    .card:hover .cover.pac   { transform: translateY(-2px) scale(1.02) rotate(-0.2deg); }
-    .card:hover .cover.snake { transform: translateY(-2px) scale(1.02) skewX(-0.5deg); }
-    .card:hover .cover.invaders,
-    .card:hover .cover.galaga{ transform: translateY(-2px) scale(1.025); }
-    .card:hover .cover.tetris{ transform: translateY(-2px) scale(1.02) rotate(0.2deg); }
-    .card:hover .cover.pong  { transform: translateY(-2px) scale(1.015); }
-    .card:hover .cover.arkanoid{ transform: translateY(-2px) scale(1.02); }
-    .card:hover .cover.asteroids{ transform: translateY(-2px) scale(1.02); }
-
-    /* animação da varredura */
-    @keyframes cover-sweep{
-      0%   { transform: translateY(-100%); }
-      100% { transform: translateY(100%);  }
+    /* Grid de Jogos */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 30px;
+      padding: 20px 5%;
+      max-width: 1400px;
+      margin: 0 auto 60px;
+      position: relative;
+      z-index: 10;
     }
 
-    /* efeito “scanline” interno ainda mais retro (bem sutil) */
-    .cover .scanlines{
-      position:absolute; inset:0; pointer-events:none;
-      background:
-        repeating-linear-gradient(0deg,
-          rgba(0,0,0,0) 0px,
-          rgba(0,0,0,0) 1px,
-          rgba(0,0,0,.18) 2px,
-          rgba(0,0,0,.18) 3px);
-      opacity:.0;
-      transition:opacity .25s ease;
-    }
-    .card:hover .cover .scanlines{ opacity:.25; }
-
-    /* reduzir movimento quando o usuário prefere menos animação */
-    @media (prefers-reduced-motion: reduce){
-      .card .cover,
-      .card .cover::after,
-      .card .cover::before{
-        transition:none !important;
-        animation:none !important;
-      }
-      .card:hover .cover{
-        transform:none; box-shadow: inset 0 0 0 2px var(--shadow-color);
-        filter:none;
-      }
-      .card:hover .cover::after,
-      .card:hover .cover::before,
-      .card:hover .cover .scanlines{
-        opacity:0 !important;
-      }
+    /* O Card do Jogo */
+    .card {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      text-decoration: none;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
     }
 
-
-    /* Pac-Man: fundo azul escuro + pacman amarelo */
-    .cover.pac{
-      background:
-        radial-gradient(circle at 30% 50%, yellow 0 20%, transparent 21%),
-        repeating-linear-gradient(#00008b 0 4px, #000 4px 8px);
-    }
-    /* Snake: fundo verde e pixel snake */
-    .cover.snake{
-      background:
-        linear-gradient(90deg, green 0 10%, transparent 10% 20%, green 20% 30%, transparent 30% 40%, green 40% 50%, transparent 50% 60%, green 60% 70%, transparent 70% 80%, green 80% 90%, transparent 90% 100%),
-        linear-gradient(0deg, green 0 10%, transparent 10% 20%, green 20% 30%, transparent 30% 40%, green 40% 50%, transparent 50% 60%, green 60% 70%, transparent 70% 80%, green 80% 90%, transparent 90% 100%),
-        #004400;
-    }
-    /* Space Invaders: preto com aliens */
-    .cover.invaders{
-      background-color:#000;
-    }
-    .cover.invaders::before{
-      content:"👾 👾 👾";
-      font-size:28px;
-      position:absolute;
-      top:20%;left:50%;transform:translateX(-50%);
-    }
-    /* Tetris: blocos coloridos */
-    .cover.tetris{
-      background:
-        linear-gradient(90deg, #ff0 0 25%, #0ff 25% 50%, #f0f 50% 75%, #f00 75% 100%),
-        linear-gradient(#0f0 0 25%, transparent 25% 50%, #00f 50% 75%, transparent 75% 100%);
-      background-size:40px 40px;
-    }
-    /* Pong: preto com barra e bola */
-    .cover.pong{
-      background-color:#000;
-    }
-    .cover.pong::before, .cover.pong::after{
-      content:"";
-      position:absolute;
-      width:6px;height:30%;
-      top:35%;
-      background:#fff;
-    }
-    .cover.pong::before{left:8px;}
-    .cover.pong::after{right:8px;}
-    .cover.pong::after{
-      box-shadow: -150px 10px 0 -3px #fff;
-    }
-    /* Arkanoid: blocos no topo e barra no fundo */
-    .cover.arkanoid{
-      background:
-        repeating-linear-gradient(90deg, red 0 20px, orange 20px 40px, yellow 40px 60px, green 60px 80px, blue 80px 100px, purple 100px 120px),
-        #000;
-    }
-    /* Asteroids: fundo preto e pedras cinzas */
-    .cover.asteroids{
-      background-color:#000;
-    }
-    .cover.asteroids::before{
-      content:"⬡ ⬡ ⬡";
-      font-size:28px;
-      position:absolute;
-      top:35%;left:50%;transform:translateX(-50%);
-      color:#aaa;
+    .card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 243, 255, 0.4);
+      border-color: var(--neon-blue);
+      z-index: 11;
     }
 
+    .card-thumb {
+      height: 180px;
+      background: #000;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    /* Thumbnails CSS puro (placeholders estilosos) */
+    .thumb-art {
+      width: 100%; height: 100%;
+      opacity: 0.8;
+      transition: 0.4s;
+    }
+    .card:hover .thumb-art { opacity: 1; transform: scale(1.1); }
 
-
-
-    /* ===== Footer ===== */
-    .site-footer{
-      text-align:center; opacity:.85; padding-top:10px;
-      font-size:clamp(14px, 2vw, 16px);
+    .card-info {
+      padding: 20px;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
     }
 
-    /* ===== Overlay CRT ===== */
-    #crtOverlay{
-      pointer-events:none; position:fixed; inset:0; z-index:50;
-      background:
-        linear-gradient(to bottom, rgba(255,255,255,.05), transparent 8%),
-        repeating-linear-gradient(0deg,
-          rgba(0,0,0,0) 0px,
-          rgba(0,0,0,0) 1px,
-          rgba(0,0,0,.28) 2px,
-          rgba(0,0,0,.28) 3px);
-      mix-blend-mode:soft-light;
-      opacity:var(--crt-opacity);
-      transition: opacity .25s ease;
+    .card h2 {
+      margin: 0;
+      font-family: 'Orbitron';
+      font-size: 1.4rem;
+      color: #fff;
     }
 
-    /* ===== Animações ===== */
-    @keyframes fade-in{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)} }
-
-    /* ===== Redução de movimento ===== */
-    @media (prefers-reduced-motion:reduce){
-      .site-header{animation:none}
-      .card, #crtOverlay{transition:none}
+    .card p {
+      margin: 8px 0 0;
+      font-size: 0.9rem;
+      color: #aaa;
+      line-height: 1.4;
     }
+
+    .badge {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: var(--neon-pink);
+      color: #fff;
+      font-size: 0.7rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      box-shadow: 0 0 10px var(--neon-pink);
+      text-transform: uppercase;
+    }
+    
+    .badge.wip { background: #555; box-shadow: none; color: #aaa; }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px;
+      color: #555;
+      font-size: 0.8rem;
+    }
+
+    /* Animação de entrada */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .card { animation: fadeInUp 0.6s ease backwards; }
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.2s; }
+    .card:nth-child(3) { animation-delay: 0.3s; }
+    .card:nth-child(4) { animation-delay: 0.4s; }
+
   </style>
 </head>
-
 <body>
-  <a class="skip-link" href="#grid">Pular para a grade de jogos</a>
 
-  <!-- ===== Header ===== -->
-  <header class="site-header" role="banner">
-    <div class="brand" aria-label="RetroPlay">
-      <span class="logo" aria-hidden="true">🎮</span>
-      <h1 class="title">RetroPlay</h1>
+  <!-- Background dinâmico -->
+  <canvas id="bgCanvas"></canvas>
+  <div class="scanlines"></div>
+
+  <header>
+    <h1>Retro Play <span style="font-size:0.5em; vertical-align: super; color:var(--neon-gold)">ULTRA</span></h1>
+    <div class="subtitle">A SUA ARCADE VIRTUAL REMASTERIZADA</div>
+    
+    <div class="search-container">
+      <input type="text" class="search-input" placeholder="Buscar jogo... (ex: Snake, Pacman)" id="search">
     </div>
-    <p class="tagline">Reviva os clássicos diretamente no navegador!</p>
-
-<div class="toolbar" role="region" aria-label="Ferramentas">
-  <!-- Busca -->
-  <label class="search" aria-label="Buscar jogo">
-    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" focusable="false">
-      <path d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z"
-            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-    <input id="searchInput" type="search"
-           placeholder="Buscar jogo (ex: pac, tet, invaders…)"
-           inputmode="search" autocomplete="off" />
-  </label>
-
-  <!-- Tema / Favoritos / Ajuda -->
-  <div class="toggles" role="group" aria-label="Aparência, favoritos e ajuda">
-    <button id="themeCycle" class="btn" type="button" aria-label="Alternar tema (Retro, Neon, Noir)" aria-pressed="false">
-      Tema: <strong id="themeLabel">Retro</strong>
-    </button>
-
-    <button id="favFilter" class="btn" type="button" aria-pressed="false" title="Mostrar apenas favoritos">
-      Somente favoritos ⭐
-    </button>
-
-    <button id="helpBtn" class="btn" type="button" aria-haspopup="dialog" aria-controls="helpDialog" aria-expanded="false">
-      Ajuda / ?
-    </button>
-  </div>
-</div>
-
   </header>
 
-  <!-- ===== Modal de Ajuda (atalhos & dicas) ===== -->
-  <!-- Backdrop para o modal -->
-<div id="modalBackdrop" hidden
-     style="position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:60;"></div>
-
-<!-- Dialog de ajuda -->
-<dialog id="helpDialog" aria-labelledby="helpTitle"
-        style="
-          max-width:min(760px, 94vw);
-          border:2px solid color-mix(in oklab, var(--accent) 50%, black 50%);
-          border-radius:16px;
-          background:
-            linear-gradient(180deg, color-mix(in oklab, var(--card) 94%, black 6%), color-mix(in oklab, var(--card) 80%, black 20%));
-          color:var(--text);
-          box-shadow: 16px 16px 0 var(--shadow-color);
-          padding:18px 18px 12px;
-          z-index:70;">
-  <form method="dialog" style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;">
-    <h2 id="helpTitle" style="margin:0;font-family:var(--ff-display);font-size:20px;color:var(--accent);text-shadow:2px 2px var(--shadow-color);">
-      Atalhos & Dicas
-    </h2>
-    <button id="closeHelp" class="btn" value="cancel" type="submit" aria-label="Fechar ajuda">Fechar</button>
-  </form>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
-    <section>
-      <h3 style="margin:0 0 8px;font-size:18px;">Navegação</h3>
-      <ul style="margin:0 0 10px 18px;line-height:1.25;">
-        <li><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd>: mover foco</li>
-        <li><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> ou <kbd>WASD</kbd>: navegar entre cards</li>
-        <li><kbd>Enter</kbd> na busca: foca o primeiro resultado</li>
-      </ul>
-
-      <h3 style="margin:10px 0 8px;font-size:18px;">Aparência</h3>
-      <ul style="margin:0 0 10px 18px;line-height:1.25;">
-        <li><strong>Tema</strong>: Retro → Neon → Noir (botão “Tema”)</li>
-        <li>Scanlines (CRT) e Alto Contraste já estão sempre ativos no design.</li>
-      </ul>
-    </section>
-
-    <section>
-      <h3 style="margin:0 0 8px;font-size:18px;">Dicas</h3>
-      <ul style="margin:0 0 10px 18px;line-height:1.25;">
-        <li>Use palavras incompletas na busca: “pac”, “tet”, “inva”…</li>
-        <li>Preferências ficam salvas (tema, favoritos e filtro).</li>
-        <li>Respeita <em>prefers-reduced-motion</em>.</li>
-      </ul>
-    </section>
-  </div>
-</dialog>
-
-
-  <!-- Overlay CRT (ligado via JS) -->
-  <div id="crtOverlay" aria-hidden="true"></div>
-
-    <!-- ===== Hero (opcional, leve) ===== -->
-  <section
-    class="hero"
-    style="
-      width:min(1200px,100%);
-      margin:0 auto 14px;
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:10px;
-      padding:12px;
-      border:2px solid color-mix(in oklab, var(--accent) 55%, black 45%);
-      border-radius:16px;
-      background:
-        linear-gradient(180deg, color-mix(in oklab, var(--card) 90%, black 10%), color-mix(in oklab, var(--card) 75%, black 25%));
-      box-shadow: 12px 12px 0 var(--shadow-color);
-    "
-    aria-label="Destaques"
-  >
-    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
-      <h2 style="margin:0;font-family:var(--ff-display);font-size:clamp(18px,3vw,24px);color:var(--accent);text-shadow:2px 2px var(--shadow-color);">
-        Destaque do mês
-      </h2>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <span style="font-size:16px;opacity:.95;">Novo: capas 8-bit em breve</span>
-        <span aria-hidden="true" style="font-size:18px">✨</span>
+  <main class="grid" id="gameGrid">
+    
+    <!-- PAC-MAN (Pasta Jogos) -->
+    <a href="jogos/pacman.html" class="card" data-tags="arcade pacman labirinto">
+      <div class="card-thumb">
+        <div class="thumb-art" style="background: radial-gradient(circle at 30% 50%, #ffd700 0%, #ffd700 15%, transparent 16%), linear-gradient(90deg, #000 0%, #00134d 100%);"></div>
+        <div class="badge">Ultra</div>
       </div>
-    </div>
-    <p style="margin:0;opacity:.95;font-size:clamp(15px,2.2vw,18px);">
-      Que tal começar com <strong>Pac-Man</strong> ou encarar as linhas de <strong>Tetris</strong>? Use a busca acima para filtrar rápido. 😉
-    </p>
-  </section>
+      <div class="card-info">
+        <h2>Pac-Man</h2>
+        <p>A lenda remasterizada. IA avançada, partículas e efeitos neon.</p>
+      </div>
+    </a>
 
-  <!-- ===== Conteúdo principal ===== -->
-  <main class="content" role="main">
-    <section class="grid" id="grid" aria-label="Lista de jogos">
-      <!-- Use data-* para busca e futuros filtros -->
-      <a class="card" href="jogos/pacman.html" data-title="pac-man" data-genre="labirinto arcade classico" tabindex="0">
-  <button class="fav-btn" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">★</button>
-  <div class="cover pac" role="img" aria-label="Capa 8-bit de Pac-Man com labirinto estilizado">
-    <span class="scanlines" aria-hidden="true"></span>
-  </div>
-  <h2>Pac-Man</h2>
-  <p>Labirintos, power-pellets e fantasmas famintos.</p>
-</a>
+    <!-- BREAKOUT (Pasta Jogos) -->
+    <a href="jogos/breakout.html" class="card" data-tags="arcade breakout tijolos">
+      <div class="card-thumb">
+        <div class="thumb-art" style="background: linear-gradient(180deg, #000 70%, #ff00ff 100%); display:flex; align-items:center; justify-content:center;">
+          <div style="width:60px; height:10px; background:#00f3ff; box-shadow:0 0 10px #00f3ff;"></div>
+          <div style="width:10px; height:10px; background:#fff; border-radius:50%; position:absolute; top:50%; margin-top:-20px;"></div>
+        </div>
+        <div class="badge">Novo</div>
+      </div>
+      <div class="card-info">
+        <h2>Breakout Neon</h2>
+        <p>Destrua blocos com física moderna, power-ups e explosões.</p>
+      </div>
+    </a>
 
+    <!-- SNAKE (Pasta Jogos) -->
+    <a href="jogos/snake.html" class="card" data-tags="arcade snake cobra">
+      <div class="card-thumb">
+        <div class="thumb-art" style="background: #051005; display:grid; place-items:center;">
+           <div style="font-family:'Orbitron'; color:#0f0; font-size:3rem; text-shadow:0 0 15px #0f0;">SNAKE</div>
+        </div>
+        <div class="badge">Remaster</div>
+      </div>
+      <div class="card-info">
+        <h2>Cyber Snake</h2>
+        <p>Grid digital, boost de velocidade e rastro de luz. Clássico evoluído.</p>
+      </div>
+    </a>
 
-      <a class="card" href="jogos/snake.html" data-title="snake" data-genre="arcade reflexo classico" tabindex="0">
-  <button class="fav-btn" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">★</button>
-  <div class="cover snake" role="img" aria-label="Capa 8-bit de Snake em grade verde">
-    <span class="scanlines" aria-hidden="true"></span>
-  </div>
-  <h2>Snake</h2>
-  <p>Cresça sem morder o próprio rabo. Fácil? Nem tanto.</p>
-</a>
+    <!-- TETRIS (Pasta Jogos) -->
+    <a href="jogos/tetris.html" class="card" data-tags="puzzle tetris">
+      <div class="card-thumb">
+        <div class="badge">Jogar</div>
+        <div class="thumb-art" style="background:linear-gradient(45deg, #111 25%, #222 25%); background-size:20px 20px;"></div>
+      </div>
+      <div class="card-info">
+        <h2>Tetris Neon</h2>
+        <p>Encaixe as peças com estilo glow e efeitos de partículas.</p>
+      </div>
+    </a>
 
+    <!-- SPACE INVADERS (Pasta Jogos) -->
+    <a href="jogos/space-invaders.html" class="card" data-tags="tiro space invaders">
+      <div class="card-thumb">
+        <div class="badge">Jogar</div>
+        <div class="thumb-art" style="background:#000; color:#fff; display:grid; place-items:center; font-size:2rem;">👾</div>
+      </div>
+      <div class="card-info">
+        <h2>Space Invaders</h2>
+        <p>Defenda a Terra da invasão pixelada.</p>
+      </div>
+    </a>
 
-      <a class="card" href="jogos/space-invaders.html" data-title="space invaders" data-genre="tiro naves arcade" tabindex="0">
-  <button class="fav-btn" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">★</button>
-  <div class="cover invaders" role="img" aria-label="Capa 8-bit de Space Invaders com alienígenas">
-    <span class="scanlines" aria-hidden="true"></span>
-  </div>
-  <h2>Space Invaders</h2>
-  <p>Defenda a Terra dos invasores pixelados.</p>
-</a>
-
-
-      <a class="card" href="jogos/tetris.html" data-title="tetris" data-genre="puzzle classico blocos" tabindex="0">
-  <button class="fav-btn" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">★</button>
-  <div class="cover tetris" role="img" aria-label="Capa 8-bit de Tetris com blocos multicoloridos">
-    <span class="scanlines" aria-hidden="true"></span>
-  </div>
-  <h2>Tetris</h2>
-  <p>Empilhe peças, limpe linhas, vença o caos.</p>
-</a>
-
-
-      <a class="card" href="jogos/pong.html" data-title="pong" data-genre="esporte arcade classico" tabindex="0">
-  <button class="fav-btn" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">★</button>
-  <div class="cover pong" role="img" aria-label="Capa 8-bit de Pong com barras e bola">
-    <span class="scanlines" aria-hidden="true"></span>
-  </div>
-  <h2>Pong</h2>
-  <p>O duelo de raquetes que começou tudo.</p>
-</a>
-
-
-      <a class="card" href="jogos/arkanoid.html" data-title="arkanoid" data-genre="breakout blocos reflexo" tabindex="0">
-  <button class="fav-btn" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">★</button>
-  <div class="cover arkanoid" role="img" aria-label="Capa 8-bit de Arkanoid com blocos coloridos">
-    <span class="scanlines" aria-hidden="true"></span>
-  </div>
-  <h2>Arkanoid</h2>
-  <p>Quebre blocos, pegue power-ups, prossiga.</p>
-</a>
-
-
-      <a class="card" href="jogos/asteroids.html" data-title="asteroids" data-genre="nave fisica tiro" tabindex="0">
-  <button class="fav-btn" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">★</button>
-  <div class="cover asteroids" role="img" aria-label="Capa 8-bit de Asteroids com rochas espaciais">
-    <span class="scanlines" aria-hidden="true"></span>
-  </div>
-  <h2>Asteroids</h2>
-  <p>Asteroides por todos os lados. Mire e acelere.</p>
-</a>
-
-
-      <!-- Espaço para crescer fácil: copie o bloco abaixo e ajuste os atributos -->
-      <a class="card" href="jogos/galaga.html" data-title="galaga" data-genre="tiro nave classico" tabindex="0">
-  <button class="fav-btn" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">★</button>
-  <div class="cover invaders" role="img" aria-label="Capa 8-bit estilo naves para Galaga">
-    <span class="scanlines" aria-hidden="true"></span>
-  </div>
-  <h2>Galaga</h2>
-  <p>Formações inimigas e capturas táticas no espaço.</p>
-</a>
-
-
-      <<a class="card" href="jogos/breakout.html" data-title="breakout" data-genre="breakout blocos arcade" tabindex="0">
-  <button class="fav-btn" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">★</button>
-  <div class="cover arkanoid" role="img" aria-label="Capa 8-bit estilo blocos para Breakout">
-    <span class="scanlines" aria-hidden="true"></span>
-  </div>
-  <h2>Breakout</h2>
-  <p>A origem do vício de quebrar blocos.</p>
-</a>
-
-    </section>
   </main>
 
-  <!-- ===== Rodapé ===== -->
-  <footer class="site-footer" role="contentinfo">
-    <small>&copy; 2025 <strong>rogerplay</strong>. Fase de testes. • <span id="footTheme">Tema: Retro</span></small>
+  <footer>
+    &copy; 2025 Retro Play Ultra. Feito para gamers, por gamers.
   </footer>
 
-    <script>
-(()=>{
-  const $  = (sel, el=document) => el.querySelector(sel);
-  const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
-  const root = document.documentElement;
-
-  // ===== elementos =====
-  const searchInput = $('#searchInput');
-  const grid        = $('#grid');
-  const cards       = $$('.card');
-  const themeBtn    = $('#themeCycle');
-  const themeLabel  = $('#themeLabel');
-  const footTheme   = $('#footTheme');
-  const helpBtn     = $('#helpBtn');
-  const helpDialog  = $('#helpDialog');
-  const backdrop    = $('#modalBackdrop');
-  const favFilterBtn= $('#favFilter');
-  const crtOverlay  = $('#crtOverlay'); // CRT sempre ativo via CSS
-
-  // ===== storage keys =====
-  const LS = {
-    theme: 'retroplay:theme',
-    q:     'retroplay:q',
-    favs:  'retroplay:favs',
-    favOn: 'retroplay:favFilter'
-  };
-
-  // ===== tema (Retro -> Neon -> Noir) =====
-  const THEMES = ['retro','neon','noir'];
-  const getTheme = () => root.getAttribute('data-theme') || 'retro';
-  const setTheme = (t) => {
-    root.setAttribute('data-theme', t);
-    localStorage.setItem(LS.theme, t);
-    if (themeLabel) themeLabel.textContent = t[0].toUpperCase()+t.slice(1);
-    if (footTheme)  footTheme.textContent  = `Tema: ${themeLabel?.textContent || t}`;
-    if (themeBtn)   themeBtn.setAttribute('aria-pressed', String(t !== 'retro'));
-    const metaTheme = document.querySelector('meta[name="theme-color"]');
-    if (metaTheme) {
-      const map = { retro:'#0f380f', neon:'#0b1020', noir:'#0b0b0c' };
-      metaTheme.setAttribute('content', map[t] || '#0f380f');
-    }
-  };
-  const savedTheme = localStorage.getItem(LS.theme);
-  setTheme(THEMES.includes(savedTheme) ? savedTheme : getTheme());
-  themeBtn?.addEventListener('click', ()=>{
-    const idx = THEMES.indexOf(getTheme());
-    const next = THEMES[(idx+1)%THEMES.length];
-    setTheme(next);
-  });
-
-  // ===== CRT/HC fixos no design (garantia) =====
-  root.style.setProperty('--crt-opacity', '0.25');
-  root.style.setProperty('--shadow-offset', '14px');
-
-  // ===== Favoritos =====
-  function loadFavs(){
-    try { return new Set(JSON.parse(localStorage.getItem(LS.favs) || '[]')); }
-    catch { return new Set(); }
-  }
-  function saveFavs(set){
-    localStorage.setItem(LS.favs, JSON.stringify(Array.from(set)));
-  }
-  let FAVS = loadFavs();
-
-  function applyFavState(card, isFav){
-    card.dataset.fav = isFav ? '1' : '0';
-    const btn = card.querySelector('.fav-btn');
-    if (btn) btn.setAttribute('aria-pressed', String(!!isFav));
-  }
-
-  function initFavs(){
-    cards.forEach(card=>{
-      const key = card.getAttribute('href') || card.dataset.id || '';
-      applyFavState(card, FAVS.has(key));
-    });
-  }
-
-  // botões de estrela (dentro dos cards)
-  $$('.card .fav-btn').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      e.preventDefault(); e.stopPropagation();
-      const card = btn.closest('.card'); if (!card) return;
-
-      // chave estável (href se existir, senão data-id)
-      const key = card.getAttribute('href') || card.dataset.id || '';
-
-      // alterna estado
-      const nowFav = card.dataset.fav !== '1';
-      card.dataset.fav = nowFav ? '1' : '0';
-      btn.setAttribute('aria-pressed', String(nowFav));
-
-      // persistência
-      if (nowFav) FAVS.add(key); else FAVS.delete(key);
-      saveFavs(FAVS);
-
-      // se o filtro Só favoritos está ativo, re-aplica; senão atualiza aviso
-      if (favFilterBtn?.getAttribute('aria-pressed') === 'true') {
-        applyFavFilter(true);
-      } else {
-        ensureNoResults();
-      }
-    });
-  });
-
-  // ===== Busca =====
-  const norm = (s) => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
-
-  const filterCards = (query) => {
-    const q = norm((query || '').trim());
-    let firstVisible = null;
-
-    cards.forEach(card => {
-      const title  = (card.dataset.title || card.textContent || '');
-      const genres = (card.dataset.genre  || '');
-      const hay = norm(title + ' ' + genres);
-      const match = !q || hay.includes(q);
-      card.style.display = match ? '' : 'none';
-      if (match && !firstVisible) firstVisible = card;
-    });
-
-    if (q && firstVisible) {
-      grid.dataset.firstVisible = cards.indexOf(firstVisible);
-    } else {
-      delete grid.dataset.firstVisible;
-    }
-
-    // compor com filtro de favoritos se estiver ligado
-    if (favFilterBtn?.getAttribute('aria-pressed') === 'true') {
-      applyFavFilter(true);
-    } else {
-      ensureNoResults();
-    }
-  };
-
-  // restaura última busca
-  const savedQ = localStorage.getItem(LS.q) || '';
-  if (savedQ) { if (searchInput) searchInput.value = savedQ; filterCards(savedQ); }
-
-  let t;
-  searchInput?.addEventListener('input', ()=>{
-    clearTimeout(t);
-    const val = searchInput.value;
-    t = setTimeout(()=>{
-      localStorage.setItem(LS.q, val);
-      filterCards(val);
-    }, 80);
-  });
-
-  searchInput?.addEventListener('keydown', (e)=>{
-    if (e.key === 'Enter') {
-      const idxStr = grid.dataset.firstVisible;
-      if (idxStr !== undefined) {
-        const el = cards[parseInt(idxStr,10)];
-        if (el && el.offsetParent !== null) el.focus();
-      }
-    }
-    if ((e.key === '?' || (e.key === '/' && e.shiftKey)) && !e.ctrlKey && !e.altKey) {
-      e.preventDefault(); openHelp();
-    }
-  });
-
-  // ===== Filtro "Somente favoritos" =====
-  function applyFavFilter(on){
-    favFilterBtn?.setAttribute('aria-pressed', String(!!on));
-    localStorage.setItem(LS.favOn, on ? '1' : '0');
-
-    // termo de busca atual (se houver)
-    const q  = (searchInput?.value || '').trim().toLowerCase();
-    const qn = q.normalize('NFD').replace(/\p{Diacritic}/gu, '');
-
-    cards.forEach(card=>{
-      // regra Só favoritos usando o DOM
-      let show = on ? (card.dataset.fav === '1') : true;
-
-      // compõe com busca
-      if (show && q){
-        const hay = (card.dataset.title + ' ' + (card.dataset.genre||'') + ' ' + card.textContent)
-          .toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
-        show = hay.includes(qn);
-      }
-
-      card.style.display = show ? '' : 'none';
-    });
-
-    // atualiza “primeiro visível” p/ Enter na busca
-    const firstVisible = cards.find(c => c.offsetParent !== null);
-    if (firstVisible) grid.dataset.firstVisible = cards.indexOf(firstVisible);
-    else delete grid.dataset.firstVisible;
-
-    ensureNoResults();
-  }
-
-  // estado inicial do filtro + listener
-  const favFilterOn = localStorage.getItem(LS.favOn) === '1';
-  if (favFilterBtn){
-    applyFavFilter(favFilterOn);
-    favFilterBtn.addEventListener('click', ()=>{
-      const now = favFilterBtn.getAttribute('aria-pressed') !== 'true';
-      applyFavFilter(now);
-    });
-  }
-
-  // ===== Navegação por teclado no grid =====
-  grid?.addEventListener('keydown', (e)=>{
-    const keys = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'];
-    if (!keys.includes(e.key)) return;
-
-    const visible = cards.filter(c => c.offsetParent !== null);
-    const cols = computeColumns(visible);
-    const current = visible.indexOf(document.activeElement);
-    if (current === -1) return;
-
-    e.preventDefault();
-    let next = current;
-    switch (e.key) {
-      case 'ArrowLeft': case 'a': case 'A': next = Math.max(0, current - 1); break;
-      case 'ArrowRight': case 'd': case 'D': next = Math.min(visible.length - 1, current + 1); break;
-      case 'ArrowUp': case 'w': case 'W': next = Math.max(0, current - cols); break;
-      case 'ArrowDown': case 's': case 'S': next = Math.min(visible.length - 1, current + cols); break;
-    }
-    visible[next]?.focus();
-  });
-  function computeColumns(visible){
-    if (visible.length < 2) return 1;
-    const y0 = visible[0].getBoundingClientRect().top;
-    let c = 1;
-    for (let i=1;i<visible.length;i++){
-      if (Math.abs(visible[i].getBoundingClientRect().top - y0) < 5) c++; else break;
-    }
-    return c;
-  }
-
-  // ===== Ajuda (dialog) =====
-  let lastActive = null;
-  function trapFocus(e){
-    if (helpDialog?.open !== true || e.key !== 'Tab') return;
-    const f = $$('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])', helpDialog)
-      .filter(el => !el.hasAttribute('disabled') && el.offsetParent !== null);
-    if (!f.length) return;
-    const first = f[0], last = f[f.length-1];
-    if (e.shiftKey) { if (document.activeElement === first){ last.focus(); e.preventDefault(); } }
-    else { if (document.activeElement === last){ first.focus(); e.preventDefault(); } }
-  }
-  function openHelp(){
-    if (helpDialog?.open) return;
-    lastActive = document.activeElement;
-    if (backdrop) backdrop.hidden = false;
-    if (helpDialog && typeof helpDialog.showModal === 'function') helpDialog.showModal();
-    else if (helpDialog) { helpDialog.setAttribute('open',''); helpDialog.style.display='block'; }
-    helpBtn?.setAttribute('aria-expanded','true');
-    ($('#closeHelp', helpDialog) || helpDialog)?.focus?.();
-    document.addEventListener('keydown', trapFocus);
-  }
-  function closeHelp(){
-    if (!helpDialog?.open) return;
-    if (typeof helpDialog.close === 'function') helpDialog.close();
-    else { helpDialog.removeAttribute('open'); helpDialog.style.display='none'; }
-    if (backdrop) backdrop.hidden = true;
-    helpBtn?.setAttribute('aria-expanded','false');
-    document.removeEventListener('keydown', trapFocus);
-    if (lastActive && document.body.contains(lastActive)) lastActive.focus();
-  }
-  helpBtn?.addEventListener('click', openHelp);
-  $('#closeHelp', helpDialog)?.addEventListener('click', (e)=>{ e.preventDefault(); closeHelp(); });
-  backdrop?.addEventListener('click', closeHelp);
-  document.addEventListener('keydown', (e)=>{
-    if (e.key === 'Escape' && helpDialog?.open) { e.preventDefault(); closeHelp(); }
-    const tag = (e.target?.tagName || '').toLowerCase();
-    const inField = ['input','textarea','select'].includes(tag) || e.target?.isContentEditable;
-    if (!inField && (e.key === '?' || (e.key === '/' && e.shiftKey)) && !e.ctrlKey && !e.altKey) {
-      e.preventDefault(); openHelp();
-    }
-  });
-
-  // ===== aviso “sem resultados” =====
-  const noResId = 'no-results-msg';
-  function ensureNoResults(){
-    const hasVisible = cards.some(c => c.offsetParent !== null);
-    let msg = $('#'+noResId);
-    if (!hasVisible) {
-      if (!msg) {
-        msg = document.createElement('div');
-        msg.id = noResId; msg.role = 'status';
-        msg.style.margin = '12px auto';
-        msg.style.width = 'fit-content';
-        msg.style.padding = '10px 14px';
-        msg.style.border = '2px dashed';
-        msg.style.borderColor = 'color-mix(in oklab, var(--accent) 60%, black 40%)';
-        msg.style.borderRadius = '12px';
-        msg.style.boxShadow = '6px 6px 0 var(--shadow-color)';
-        msg.textContent = 'Nenhum jogo encontrado. Tente outra palavra.';
-        grid.after(msg);
-      }
-    } else if (msg) { msg.remove(); }
-  }
-  const obs = new MutationObserver(ensureNoResults);
-  cards.forEach(c => obs.observe(c, {attributes:true, attributeFilter:['style']}));
-  ensureNoResults();
-
-  // inicializa favoritos no visual (depois do ensure)
-  initFavs();
-})();
-</script>
-
-
-  <!-- ===== Aviso para quem desativa JS ===== -->
-  <noscript>
-    <div class="noscript"
-         style="margin:12px auto;background:#8a1f1f;color:#fff;border:2px solid #000;
-                padding:10px 14px;width:fit-content;border-radius:10px;box-shadow:4px 4px 0 #000;">
-      Ative o JavaScript para usar a busca, alternar temas e ver os efeitos visuais.
-    </div>
-  </noscript>
-
-  <!-- ===== Pequenos aprimoramentos de compatibilidade ===== -->
   <script>
-    // Se o navegador não suporta <dialog>, garante acessibilidade mínima:
-    (function(){
-      const dlg = document.getElementById('helpDialog');
-      if (!dlg) return;
-      if (typeof dlg.showModal !== 'function') {
-        dlg.setAttribute('role','dialog');
-        dlg.setAttribute('aria-modal','true');
+    (function() {
+      // ===== Fundo Dinâmico (Starfield) =====
+      const canvas = document.getElementById('bgCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      let w, h;
+      const stars = [];
+
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      // Criar estrelas iniciais
+      for(let i=0; i<150; i++) {
+        stars.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          z: Math.random() * 2 + 0.5, // profundidade/velocidade
+          size: Math.random() * 1.5
+        });
+      }
+
+      function animate() {
+        ctx.fillStyle = '#05050a';
+        ctx.fillRect(0, 0, w, h);
+        
+        ctx.fillStyle = '#fff';
+        stars.forEach(star => {
+          star.y += star.z * 0.5; // movimento vertical
+          
+          // Reset se sair da tela
+          if(star.y > h) {
+            star.y = 0;
+            star.x = Math.random() * w;
+          }
+
+          // Desenhar com brilho variável
+          const alpha = Math.random() * 0.5 + 0.5;
+          ctx.globalAlpha = alpha;
+          ctx.beginPath();
+          ctx.arc(star.x, star.y, star.size, 0, Math.PI*2);
+          ctx.fill();
+        });
+        
+        requestAnimationFrame(animate);
+      }
+      animate();
+
+      // ===== Filtro de Busca =====
+      const searchInput = document.getElementById('search');
+      const cards = document.querySelectorAll('.card');
+
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          const term = e.target.value.toLowerCase();
+          cards.forEach(card => {
+            const tags = card.getAttribute('data-tags');
+            if(tags.includes(term)) {
+              card.style.display = 'flex';
+            } else {
+              card.style.display = 'none';
+            }
+          });
+        });
       }
     })();
   </script>
 </body>
 </html>
-

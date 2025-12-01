@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cyber Snake</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #0f0;
+      font-family: 'Courier New', Courier, monospace;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    
+    #gameContainer {
+      position: relative;
+      box-shadow: 0 0 50px rgba(0, 255, 0, 0.2);
+      border: 2px solid #333;
+    }
+
+    canvas {
+      display: block;
+      background: radial-gradient(circle at center, #112211 0%, #000000 100%);
+    }
+
+    #ui {
+      position: absolute;
+      top: 10px; left: 10px;
+      font-size: 20px;
+      font-weight: bold;
+      z-index: 10;
+      text-shadow: 0 0 5px #0f0;
+    }
+
+    #overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+    }
+    
+    button {
+      background: #0f0;
+      color: #000;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+      box-shadow: 0 0 15px #0f0;
+    }
+    button:hover { background: #fff; }
+
+    /* Touch Pad */
+    #touchPad {
+      display: none;
+      position: fixed; bottom: 20px; right: 20px;
+      width: 150px; height: 150px;
+      z-index: 100;
+    }
+    @media (max-width: 800px) {
+      #touchPad { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+      .t-btn { background: rgba(0, 255, 0, 0.1); border: 1px solid #0f0; display:flex; justify-content:center; align-items:center;}
+      .t-btn:active { background: rgba(0, 255, 0, 0.4); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <div id="ui">SCORE: <span id="scoreVal">0</span></div>
+  
+  <div id="overlay">
+    <h1 style="font-size:40px; margin:0; text-shadow:0 0 20px #0f0;">CYBER SNAKE</h1>
+    <p>Use Setas ou WASD</p>
+    <button id="btnStart">INICIAR SISTEMA</button>
+  </div>
+  
+  <canvas id="game" width="600" height="600"></canvas>
+</div>
+
+<div id="touchPad">
+  <div></div><div class="t-btn" id="btnU">▲</div><div></div>
+  <div class="t-btn" id="btnL">◀</div><div></div><div class="t-btn" id="btnR">▶</div>
+  <div></div><div class="t-btn" id="btnD">▼</div><div></div>
+</div>
+
+<script>
+  /**
+   * CYBER SNAKE REMASTER
+   * Features: Grid neon, rastro, partículas ao comer, aceleração.
+   */
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  
+  // Ajustar tamanho se mobile
+  if(window.innerWidth < 620) {
+    canvas.width = window.innerWidth - 20;
+    canvas.height = window.innerWidth - 20;
+  }
+  
+  const gridSize = 20;
+  const tileCountX = Math.floor(canvas.width / gridSize);
+  const tileCountY = Math.floor(canvas.height / gridSize);
+  
+  let xv = 0; // velocidade x
+  let yv = 0; // velocidade y
+  let px = 10; // posição x player
+  let py = 10; // posição y player
+  
+  let trail = [];
+  let tail = 5;
+  
+  let ax = 15; // apple x
+  let ay = 15; // apple y
+  
+  let score = 0;
+  let gameRunning = false;
+  let gameSpeed = 100;
+  let gameInterval;
+  
+  // Audio
+  const Audio = (function(){
+    let actx; 
+    function init(){ if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); }
+    function play(freq, type='square', dur=0.1){
+      if(!actx) return;
+      const o = actx.createOscillator();
+      const g = actx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.1, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.01, actx.currentTime+dur);
+      o.connect(g); g.connect(actx.destination);
+      o.start(); o.stop(actx.currentTime+dur);
+    }
+    return { init, play };
+  })();
+
+  function startGame() {
+    Audio.init();
+    document.getElementById('overlay').style.display = 'none';
+    reset();
+    gameRunning = true;
+    gameLoop();
+  }
+
+  function reset() {
+    px = Math.floor(tileCountX/2);
+    py = Math.floor(tileCountY/2);
+    xv = 0; yv = 0;
+    trail = [];
+    tail = 5;
+    score = 0;
+    document.getElementById('scoreVal').innerText = score;
+    placeApple();
+  }
+  
+  function placeApple() {
+    ax = Math.floor(Math.random() * tileCountX);
+    ay = Math.floor(Math.random() * tileCountY);
+  }
+
+  function gameLoop() {
+    if(!gameRunning) return;
+    
+    update();
+    draw();
+    
+    setTimeout(gameLoop, 1000/15); // ~15 FPS base, estilo retro
+  }
+
+  function update() {
+    px += xv;
+    py += yv;
+    
+    // Teleporte nas bordas (Mundo infinito)
+    if(px < 0) px = tileCountX - 1;
+    if(px > tileCountX - 1) px = 0;
+    if(py < 0) py = tileCountY - 1;
+    if(py > tileCountY - 1) py = 0;
+    
+    // Fundo Grid
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Desenha Grid Sutil
+    ctx.strokeStyle = '#121';
+    ctx.lineWidth = 1;
+    for(let i=0; i<canvas.width; i+=gridSize) {
+      ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, canvas.height); ctx.stroke();
+    }
+    for(let i=0; i<canvas.height; i+=gridSize) {
+      ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(canvas.width, i); ctx.stroke();
+    }
+    
+    // Desenha Cobra
+    ctx.fillStyle = '#0f0';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#0f0';
+    
+    for(let i=0; i<trail.length; i++) {
+      // Efeito gradiente na cauda
+      let alpha = (i+1) / trail.length;
+      ctx.fillStyle = `rgba(0, 255, 0, ${alpha})`;
+      
+      ctx.fillRect(trail[i].x * gridSize + 1, trail[i].y * gridSize + 1, gridSize - 2, gridSize - 2);
+      
+      // Auto-colisão
+      if(trail[i].x == px && trail[i].y == py && (xv!=0 || yv!=0)) {
+        death();
+      }
+    }
+    ctx.shadowBlur = 0;
+    
+    trail.push({x: px, y: py});
+    while(trail.length > tail) {
+      trail.shift();
+    }
+    
+    // Comida
+    if(ax == px && ay == py) {
+      tail++;
+      score += 10;
+      document.getElementById('scoreVal').innerText = score;
+      Audio.play(600 + (score*2), 'sine');
+      placeApple();
+      // Flash efeito
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+    }
+    
+    // Desenha Comida
+    ctx.fillStyle = '#f00';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#f00';
+    let pulse = Math.sin(Date.now() / 100) * 2;
+    ctx.fillRect(ax*gridSize + 2 - pulse, ay*gridSize + 2 - pulse, gridSize - 4 + (pulse*2), gridSize - 4 + (pulse*2));
+    ctx.shadowBlur = 0;
+  }
+  
+  function draw() {
+    // Renderizado dentro do update para sync
+  }
+
+  function death() {
+    gameRunning = false;
+    Audio.play(150, 'sawtooth', 0.5);
+    document.getElementById('overlay').style.display = 'flex';
+    document.querySelector('#overlay h1').innerText = "SYSTEM FAILURE";
+    document.querySelector('#overlay p').innerText = "Score Final: " + score;
+    document.getElementById('btnStart').innerText = "REINICIAR";
+  }
+
+  // Controles
+  function keyPush(evt) {
+    if(!gameRunning && (evt.key.includes('Arrow') || evt.key.includes('w'))) return;
+    
+    switch(evt.key) {
+      case 'ArrowLeft': case 'a': if(xv !== 1) { xv = -1; yv = 0; } break;
+      case 'ArrowUp': case 'w': if(yv !== 1) { xv = 0; yv = -1; } break;
+      case 'ArrowRight': case 'd': if(xv !== -1) { xv = 1; yv = 0; } break;
+      case 'ArrowDown': case 's': if(yv !== -1) { xv = 0; yv = 1; } break;
+    }
+  }
+  document.addEventListener("keydown", keyPush);
+  document.getElementById('btnStart').onclick = startGame;
+
+  // Touch
+  document.getElementById('btnU').onclick = () => { if(yv !== 1) { xv = 0; yv = -1; } };
+  document.getElementById('btnD').onclick = () => { if(yv !== -1) { xv = 0; yv = 1; } };
+  document.getElementById('btnL').onclick = () => { if(xv !== 1) { xv = -1; yv = 0; } };
+  document.getElementById('btnR').onclick = () => { if(xv !== -1) { xv = 1; yv = 0; } };
+
+</script>
+</body>
+</html>
