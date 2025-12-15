@@ -1,372 +1,649 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>RetroPlay Hub 2.0</title>
-  <meta name="theme-color" content="#0a0a12" />
-  
-  <!-- Fontes Arcade -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torneio de Lendas - Mata-Mata</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-hover: #334155;
+            --text-color: #f8fafc;
+            --accent-color: #3b82f6;
+            --line-color: #475569;
+            --winner-gold: #fbbf24;
+            --loss-opacity: 0.4;
+        }
 
-  <style>
-    :root {
-      --bg: #05050a;
-      --card-bg: rgba(20, 20, 35, 0.6);
-      --glass: rgba(255, 255, 255, 0.05);
-      --border: rgba(255, 255, 255, 0.1);
-      --neon-blue: #00f3ff;
-      --neon-pink: #ff00ff;
-      --neon-gold: #ffd700;
-      --text-main: #e0e0e0;
-    }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
 
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text-main);
-      font-family: 'Rajdhani', sans-serif;
-      overflow-x: hidden;
-      min-height: 100vh;
-    }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-    /* Fundo Animado (Canvas) fica fixo atrás */
-    #bgCanvas {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: -1;
-      opacity: 0.6;
-    }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
 
-    /* Scanlines Overlay (Efeito TV Antiga sutil) */
-    .scanlines {
-      position: fixed; inset: 0; pointer-events: none; z-index: 999;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
-      background-size: 100% 4px;
-      opacity: 0.15;
-    }
+        h1 {
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(to right, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
 
-    /* Header */
-    header {
-      padding: 40px 20px 20px;
-      text-align: center;
-      position: relative;
-      z-index: 10;
-    }
+        p.subtitle {
+            color: #94a3b8;
+            font-size: 1rem;
+        }
 
-    h1 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: clamp(2.5rem, 5vw, 4rem);
-      margin: 0;
-      text-transform: uppercase;
-      letter-spacing: 4px;
-      background: linear-gradient(to bottom, #fff, #aaa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 0 15px rgba(0, 243, 255, 0.5));
-    }
+        /* Container Principal com Scroll Horizontal para Mobile */
+        .bracket-container {
+            display: flex;
+            flex-direction: row;
+            overflow-x: auto;
+            padding: 40px 20px;
+            width: 100%;
+            min-width: 1200px; /* Garante que a chave não quebre */
+            justify-content: center;
+        }
 
-    .subtitle {
-      color: var(--neon-blue);
-      font-size: 1.2rem;
-      letter-spacing: 2px;
-      margin-top: 5px;
-      text-shadow: 0 0 10px var(--neon-blue);
-    }
+        /* Colunas das Rodadas */
+        .round {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 250px;
+            margin-right: 60px; /* Espaço para as linhas */
+            position: relative;
+        }
 
-    /* Barra de Busca */
-    .search-container {
-      margin: 30px auto;
-      max-width: 600px;
-      position: relative;
-    }
+        .round:last-child {
+            margin-right: 0;
+            width: 200px;
+            justify-content: center;
+        }
 
-    .search-input {
-      width: 100%;
-      padding: 15px 25px;
-      border-radius: 50px;
-      border: 1px solid var(--neon-blue);
-      background: rgba(0, 0, 0, 0.6);
-      color: #fff;
-      font-family: 'Orbitron', sans-serif;
-      font-size: 1rem;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
-      transition: 0.3s;
-    }
+        .round-title {
+            text-align: center;
+            font-weight: bold;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            position: absolute;
+            top: -30px;
+            width: 100%;
+        }
 
-    .search-input:focus {
-      outline: none;
-      box-shadow: 0 0 25px rgba(0, 243, 255, 0.5);
-      background: rgba(0, 0, 0, 0.8);
-    }
+        /* Card do Jogo (Matchup) */
+        .matchup {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            border: 1px solid #334155;
+            transition: transform 0.2s ease;
+        }
 
-    /* Grid de Jogos */
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 30px;
-      padding: 20px 5%;
-      max-width: 1400px;
-      margin: 0 auto 60px;
-      position: relative;
-      z-index: 10;
-    }
+        .matchup:hover {
+            border-color: var(--accent-color);
+        }
 
-    /* O Card do Jogo */
-    .card {
-      position: relative;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      overflow: hidden;
-      text-decoration: none;
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
-      backdrop-filter: blur(10px);
-      display: flex;
-      flex-direction: column;
-    }
+        /* Times */
+        .team {
+            padding: 8px 12px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            user-select: none;
+        }
 
-    .card:hover {
-      transform: translateY(-10px) scale(1.02);
-      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 243, 255, 0.4);
-      border-color: var(--neon-blue);
-      z-index: 11;
-    }
+        .team:hover {
+            background-color: var(--card-hover);
+            color: white;
+        }
 
-    .card-thumb {
-      height: 180px;
-      background: #000;
-      position: relative;
-      overflow: hidden;
-      border-bottom: 1px solid var(--border);
-    }
-    
-    /* Thumbnails CSS puro (placeholders estilosos) */
-    .thumb-art {
-      width: 100%; height: 100%;
-      opacity: 0.8;
-      transition: 0.4s;
-    }
-    .card:hover .thumb-art { opacity: 1; transform: scale(1.1); }
+        .team.winner {
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
 
-    .card-info {
-      padding: 20px;
-      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-    }
+        .team.loser {
+            opacity: var(--loss-opacity);
+            text-decoration: line-through;
+            pointer-events: none;
+        }
 
-    .card h2 {
-      margin: 0;
-      font-family: 'Orbitron';
-      font-size: 1.4rem;
-      color: #fff;
-    }
+        .team:empty {
+            background-color: transparent;
+            cursor: default;
+        }
+        
+        .team:empty::after {
+            content: '...';
+            color: #475569;
+        }
 
-    .card p {
-      margin: 8px 0 0;
-      font-size: 0.9rem;
-      color: #aaa;
-      line-height: 1.4;
-    }
+        /* --- LÓGICA DAS LINHAS CONECTORAS (CSS PURO) --- */
+        
+        /* Linhas saindo da direita dos jogos (exceto final e campeão) */
+        .round:not(:last-child):not(:nth-last-child(2)) .matchup::after {
+            content: '';
+            position: absolute;
+            right: -30px; /* Metade do margin-right da round */
+            top: 50%;
+            width: 30px;
+            height: 2px;
+            background-color: var(--line-color);
+        }
 
-    .badge {
-      position: absolute;
-      top: 10px; right: 10px;
-      background: var(--neon-pink);
-      color: #fff;
-      font-size: 0.7rem;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: bold;
-      box-shadow: 0 0 10px var(--neon-pink);
-      text-transform: uppercase;
-    }
-    
-    .badge.wip { background: #555; box-shadow: none; color: #aaa; }
+        /* Conectores verticais para a próxima rodada */
+        /* Isso cria o "garfo" que une dois jogos */
+        .matchup-pair {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+        
+        /* Ajuste específico para alinhar as linhas */
+        .round-1 .matchup { margin: 20px 0; }
+        .round-2 .matchup { margin: 60px 0; }
+        .round-3 .matchup { margin: 150px 0; }
+        
+        /* Linhas de conexão (Borders) */
+        /* A lógica aqui é usar pseudo-elementos nos containers da PRÓXIMA rodada para buscar os da anterior,
+           mas para simplificar neste HTML único, usarei conectores fixos via JS ou CSS classes específicas se necessário.
+           Abaixo, uma abordagem genérica visual.
+        */
 
-    /* Footer */
-    footer {
-      text-align: center;
-      padding: 40px;
-      color: #555;
-      font-size: 0.8rem;
-    }
+        .connector-right {
+            position: absolute;
+            right: -30px;
+            width: 30px;
+            height: 50%;
+            border-right: 2px solid var(--line-color);
+        }
 
-    /* Animação de entrada */
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .card { animation: fadeInUp 0.6s ease backwards; }
-    .card:nth-child(1) { animation-delay: 0.1s; }
-    .card:nth-child(2) { animation-delay: 0.2s; }
-    .card:nth-child(3) { animation-delay: 0.3s; }
-    .card:nth-child(4) { animation-delay: 0.4s; }
+        /* Estilo Específico para conectar Oitavas -> Quartas */
+        /* Jogo 1 e 2 conectam, 3 e 4 conectam, etc. */
+        .round-1 .matchup:nth-child(odd)::after {
+            height: 100%; /* Estende para baixo para encontrar o par */
+            top: 50%;
+            border-right: 2px solid var(--line-color);
+            border-top: 2px solid var(--line-color);
+            background: transparent;
+            width: 30px;
+            transform: translateY(50%); /* Move para o meio do espaço entre jogos */
+        }
 
-  </style>
+        .round-1 .matchup:nth-child(even)::after {
+            height: 100%;
+            top: -50%;
+            border-right: 2px solid var(--line-color);
+            border-bottom: 2px solid var(--line-color);
+            background: transparent;
+            width: 30px;
+            transform: translateY(-50%);
+        }
+        
+        /* Resetando background lines para abordagem de borda */
+        .round-1 .matchup::after, .round-2 .matchup::after, .round-3 .matchup::after {
+            background-color: transparent !important;
+        }
+
+        /* Conexões Gerais - Lógica de Pares */
+        /* Para simplificar a visualização em CSS puro sem divs wrapper complexas, 
+           vamos usar classes auxiliares nos elementos matchup */
+           
+        .has-connector-down::after {
+            content: '';
+            position: absolute;
+            right: -30px;
+            width: 30px;
+            height: calc(100% + 40px); /* Altura dinâmica aproximada */
+            top: 50%;
+            border-right: 2px solid var(--line-color);
+            border-top: 2px solid var(--line-color);
+        }
+
+        .has-connector-up::after {
+            content: '';
+            position: absolute;
+            right: -30px;
+            width: 30px;
+            height: calc(100% + 40px);
+            bottom: 50%;
+            border-right: 2px solid var(--line-color);
+            border-bottom: 2px solid var(--line-color);
+        }
+        
+        /* Ajuste de altura para Quartas -> Semis */
+        .round-2 .has-connector-down::after { height: calc(100% + 120px); }
+        .round-2 .has-connector-up::after { height: calc(100% + 120px); }
+
+        /* Ajuste de altura para Semis -> Final */
+        .round-3 .has-connector-down::after { height: calc(100% + 300px); }
+        .round-3 .has-connector-up::after { height: calc(100% + 300px); }
+        
+        /* A Final não tem conector bifurcado, apenas uma linha reta para o campeão */
+        .round-4 .matchup::after {
+            content: '';
+            position: absolute;
+            right: -60px;
+            top: 50%;
+            width: 60px;
+            height: 2px;
+            background-color: var(--winner-gold) !important;
+            border: none;
+        }
+
+        /* Seção do Campeão */
+        .champion-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            height: 100%;
+        }
+
+        .trophy-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            color: #475569;
+            transition: color 0.3s;
+        }
+        
+        .champion-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--winner-gold);
+            padding: 10px 20px;
+            border: 2px solid var(--winner-gold);
+            border-radius: 8px;
+            background: rgba(251, 191, 36, 0.1);
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .champion-name.visible {
+            opacity: 1;
+            transform: scale(1);
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+        }
+
+        .winner-active .trophy-icon {
+            color: var(--winner-gold);
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+
+        /* Botão Reset */
+        .reset-btn {
+            margin-top: 20px;
+            background-color: transparent;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+
+        .reset-btn:hover {
+            border-color: var(--text-color);
+            color: var(--text-color);
+        }
+
+        /* Canvas para Confetes */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+    </style>
 </head>
 <body>
 
-  <!-- Background dinâmico -->
-  <canvas id="bgCanvas"></canvas>
-  <div class="scanlines"></div>
+    <header>
+        <h1>Torneio de Lendas</h1>
+        <p class="subtitle">Selecione o vencedor de cada confronto para avançar</p>
+    </header>
 
-  <header>
-    <h1>Retro Play <span style="font-size:0.5em; vertical-align: super; color:var(--neon-gold)">ULTRA</span></h1>
-    <div class="subtitle">A SUA ARCADE VIRTUAL REMASTERIZADA</div>
-    
-    <div class="search-container">
-      <input type="text" class="search-input" placeholder="Buscar jogo... (ex: Snake, Pacman)" id="search">
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="bracket-container">
+        
+        <!-- OITAVAS DE FINAL -->
+        <div class="round round-1" id="round-16">
+            <div class="round-title">Oitavas</div>
+            <!-- Jogos gerados via JS -->
+        </div>
+
+        <!-- QUARTAS DE FINAL -->
+        <div class="round round-2" id="round-8">
+            <div class="round-title">Quartas</div>
+        </div>
+
+        <!-- SEMIFINAIS -->
+        <div class="round round-3" id="round-4">
+            <div class="round-title">Semifinais</div>
+        </div>
+
+        <!-- FINAL -->
+        <div class="round round-4" id="round-2">
+            <div class="round-title">Grande Final</div>
+            <div class="matchup" id="final-match">
+                <div class="team" id="final-t1" onclick="selectWinner('final', 1)"></div>
+                <div class="team" id="final-t2" onclick="selectWinner('final', 2)"></div>
+            </div>
+        </div>
+
+        <!-- CAMPEÃO -->
+        <div class="round" id="winner-stage">
+            <div class="round-title">Campeão</div>
+            <div class="champion-box" id="champion-box">
+                <div class="trophy-icon">🏆</div>
+                <div class="champion-name" id="champion-name">?</div>
+            </div>
+        </div>
+
     </div>
-  </header>
 
-  <main class="grid" id="gameGrid">
-    
-    <!-- PAC-MAN (Pasta Jogos) -->
-    <a href="jogos/pacman.html" class="card" data-tags="arcade pacman labirinto">
-      <div class="card-thumb">
-        <div class="thumb-art" style="background: radial-gradient(circle at 30% 50%, #ffd700 0%, #ffd700 15%, transparent 16%), linear-gradient(90deg, #000 0%, #00134d 100%);"></div>
-        <div class="badge">Ultra</div>
-      </div>
-      <div class="card-info">
-        <h2>Pac-Man</h2>
-        <p>A lenda remasterizada. IA avançada, partículas e efeitos neon.</p>
-      </div>
-    </a>
+    <button class="reset-btn" onclick="resetTournament()">Reiniciar Torneio</button>
 
-    <!-- BREAKOUT (Pasta Jogos) -->
-    <a href="jogos/breakout.html" class="card" data-tags="arcade breakout tijolos">
-      <div class="card-thumb">
-        <div class="thumb-art" style="background: linear-gradient(180deg, #000 70%, #ff00ff 100%); display:flex; align-items:center; justify-content:center;">
-          <div style="width:60px; height:10px; background:#00f3ff; box-shadow:0 0 10px #00f3ff;"></div>
-          <div style="width:10px; height:10px; background:#fff; border-radius:50%; position:absolute; top:50%; margin-top:-20px;"></div>
-        </div>
-        <div class="badge">Novo</div>
-      </div>
-      <div class="card-info">
-        <h2>Breakout Neon</h2>
-        <p>Destrua blocos com física moderna, power-ups e explosões.</p>
-      </div>
-    </a>
+    <script>
+        // Dados Iniciais
+        const initialMatchups = [
+            { id: 1, p1: "Barcelona 2009", p2: "Juventus 2003" },
+            { id: 2, p1: "Real Madrid 2002", p2: "Chelsea 2006" },
+            { id: 3, p1: "Milan 2005", p2: "Arsenal 2004" },
+            { id: 4, p1: "Man Utd 2008", p2: "Bayern 2001" },
+            { id: 5, p1: "Inter 2010", p2: "Ajax 2002" },
+            { id: 6, p1: "Liverpool 2009", p2: "Porto 2004" },
+            { id: 7, p1: "Valencia 2004", p2: "Lyon 2006" },
+            { id: 8, p1: "Barcelona 2006", p2: "Milan 2007" }
+        ];
 
-    <!-- SNAKE (Pasta Jogos) -->
-    <a href="jogos/snake.html" class="card" data-tags="arcade snake cobra">
-      <div class="card-thumb">
-        <div class="thumb-art" style="background: #051005; display:grid; place-items:center;">
-           <div style="font-family:'Orbitron'; color:#0f0; font-size:3rem; text-shadow:0 0 15px #0f0;">SNAKE</div>
-        </div>
-        <div class="badge">Remaster</div>
-      </div>
-      <div class="card-info">
-        <h2>Cyber Snake</h2>
-        <p>Grid digital, boost de velocidade e rastro de luz. Clássico evoluído.</p>
-      </div>
-    </a>
+        // Estado do Torneio
+        const state = {
+            r16: [...initialMatchups],
+            qf: [
+                { id: 1, p1: null, p2: null }, // Vencedor Jogo 1 vs Jogo 2
+                { id: 2, p1: null, p2: null }, // Vencedor Jogo 3 vs Jogo 4
+                { id: 3, p1: null, p2: null }, // Vencedor Jogo 5 vs Jogo 6
+                { id: 4, p1: null, p2: null }  // Vencedor Jogo 7 vs Jogo 8
+            ],
+            sf: [
+                { id: 1, p1: null, p2: null }, // Vencedor QF1 vs QF2
+                { id: 2, p1: null, p2: null }  // Vencedor QF3 vs QF4
+            ],
+            final: { p1: null, p2: null },
+            winner: null
+        };
 
-    <!-- TETRIS (Pasta Jogos) -->
-    <a href="jogos/tetris.html" class="card" data-tags="puzzle tetris">
-      <div class="card-thumb">
-        <div class="badge">Jogar</div>
-        <div class="thumb-art" style="background:linear-gradient(45deg, #111 25%, #222 25%); background-size:20px 20px;"></div>
-      </div>
-      <div class="card-info">
-        <h2>Tetris Neon</h2>
-        <p>Encaixe as peças com estilo glow e efeitos de partículas.</p>
-      </div>
-    </a>
+        function init() {
+            renderRound16();
+            renderEmptySlots();
+        }
 
-    <!-- SPACE INVADERS (Pasta Jogos) -->
-    <a href="jogos/space-invaders.html" class="card" data-tags="tiro space invaders">
-      <div class="card-thumb">
-        <div class="badge">Jogar</div>
-        <div class="thumb-art" style="background:#000; color:#fff; display:grid; place-items:center; font-size:2rem;">👾</div>
-      </div>
-      <div class="card-info">
-        <h2>Space Invaders</h2>
-        <p>Defenda a Terra da invasão pixelada.</p>
-      </div>
-    </a>
+        // Renderiza Oitavas
+        function renderRound16() {
+            const container = document.getElementById('round-16');
+            container.innerHTML = '<div class="round-title">Oitavas</div>';
+            
+            state.r16.forEach((match, index) => {
+                const div = document.createElement('div');
+                div.className = `matchup ${index % 2 === 0 ? 'has-connector-down' : 'has-connector-up'}`;
+                div.innerHTML = `
+                    <div class="team" id="r16-m${match.id}-t1" onclick="advanceTeam('r16', ${match.id}, 1, '${match.p1}')">${match.p1}</div>
+                    <div class="team" id="r16-m${match.id}-t2" onclick="advanceTeam('r16', ${match.id}, 2, '${match.p2}')">${match.p2}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
 
-  </main>
+        // Renderiza slots vazios para Quartas e Semi
+        function renderEmptySlots() {
+            // Quartas
+            const qfContainer = document.getElementById('round-8');
+            qfContainer.innerHTML = '<div class="round-title">Quartas</div>';
+            state.qf.forEach((match, index) => {
+                const div = document.createElement('div');
+                div.className = `matchup ${index % 2 === 0 ? 'has-connector-down' : 'has-connector-up'}`;
+                div.innerHTML = `
+                    <div class="team" id="qf-m${match.id}-t1" onclick="advanceTeam('qf', ${match.id}, 1)"></div>
+                    <div class="team" id="qf-m${match.id}-t2" onclick="advanceTeam('qf', ${match.id}, 2)"></div>
+                `;
+                qfContainer.appendChild(div);
+            });
 
-  <footer>
-    &copy; 2025 Retro Play Ultra. Feito para gamers, por gamers.
-  </footer>
+            // Semis
+            const sfContainer = document.getElementById('round-4');
+            sfContainer.innerHTML = '<div class="round-title">Semifinais</div>';
+            state.sf.forEach((match, index) => {
+                const div = document.createElement('div');
+                div.className = `matchup ${index % 2 === 0 ? 'has-connector-down' : 'has-connector-up'}`;
+                div.innerHTML = `
+                    <div class="team" id="sf-m${match.id}-t1" onclick="advanceTeam('sf', ${match.id}, 1)"></div>
+                    <div class="team" id="sf-m${match.id}-t2" onclick="advanceTeam('sf', ${match.id}, 2)"></div>
+                `;
+                sfContainer.appendChild(div);
+            });
+        }
 
-  <script>
-    (function() {
-      // ===== Fundo Dinâmico (Starfield) =====
-      const canvas = document.getElementById('bgCanvas');
-      const ctx = canvas.getContext('2d');
-      
-      let w, h;
-      const stars = [];
-
-      function resize() {
-        w = canvas.width = window.innerWidth;
-        h = canvas.height = window.innerHeight;
-      }
-      window.addEventListener('resize', resize);
-      resize();
-
-      // Criar estrelas iniciais
-      for(let i=0; i<150; i++) {
-        stars.push({
-          x: Math.random() * w,
-          y: Math.random() * h,
-          z: Math.random() * 2 + 0.5, // profundidade/velocidade
-          size: Math.random() * 1.5
-        });
-      }
-
-      function animate() {
-        ctx.fillStyle = '#05050a';
-        ctx.fillRect(0, 0, w, h);
-        
-        ctx.fillStyle = '#fff';
-        stars.forEach(star => {
-          star.y += star.z * 0.5; // movimento vertical
-          
-          // Reset se sair da tela
-          if(star.y > h) {
-            star.y = 0;
-            star.x = Math.random() * w;
-          }
-
-          // Desenhar com brilho variável
-          const alpha = Math.random() * 0.5 + 0.5;
-          ctx.globalAlpha = alpha;
-          ctx.beginPath();
-          ctx.arc(star.x, star.y, star.size, 0, Math.PI*2);
-          ctx.fill();
-        });
-        
-        requestAnimationFrame(animate);
-      }
-      animate();
-
-      // ===== Filtro de Busca =====
-      const searchInput = document.getElementById('search');
-      const cards = document.querySelectorAll('.card');
-
-      if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-          const term = e.target.value.toLowerCase();
-          cards.forEach(card => {
-            const tags = card.getAttribute('data-tags');
-            if(tags.includes(term)) {
-              card.style.display = 'flex';
-            } else {
-              card.style.display = 'none';
+        // Função Principal de Lógica
+        function advanceTeam(round, matchId, teamIndex, teamName = null) {
+            // Se o nome não for passado (fases avançadas), pega do DOM
+            if (!teamName) {
+                const elId = `${round}-m${matchId}-t${teamIndex}`;
+                const el = document.getElementById(elId);
+                if (!el || el.innerText === '') return; // Slot vazio
+                teamName = el.innerText;
             }
-          });
-        });
-      }
-    })();
-  </script>
+
+            // Atualiza UI da partida atual (Vencedor/Perdedor)
+            const currentP1 = document.getElementById(`${round}-m${matchId}-t1`);
+            const currentP2 = document.getElementById(`${round}-m${matchId}-t2`);
+            
+            // Reset classes
+            currentP1.classList.remove('winner', 'loser');
+            currentP2.classList.remove('winner', 'loser');
+
+            if (teamIndex === 1) {
+                currentP1.classList.add('winner');
+                currentP2.classList.add('loser');
+            } else {
+                currentP2.classList.add('winner');
+                currentP1.classList.add('loser');
+            }
+
+            // Lógica de Destino
+            let destRound, destMatchId, destSlot;
+
+            if (round === 'r16') {
+                destRound = 'qf';
+                // Lógica: Jogos 1 e 2 vão para QF1. Jogos 3 e 4 para QF2...
+                destMatchId = Math.ceil(matchId / 2);
+                destSlot = (matchId % 2 !== 0) ? 1 : 2;
+            } else if (round === 'qf') {
+                destRound = 'sf';
+                destMatchId = Math.ceil(matchId / 2);
+                destSlot = (matchId % 2 !== 0) ? 1 : 2;
+            } else if (round === 'sf') {
+                destRound = 'final';
+                destMatchId = 'match'; // ID único na final
+                destSlot = matchId; // SF1 vai para slot 1, SF2 para slot 2
+            } else if (round === 'final') {
+                declareChampion(teamName);
+                return;
+            }
+
+            // Atualiza Próxima Fase
+            if (destRound !== 'final') {
+                const destEl = document.getElementById(`${destRound}-m${destMatchId}-t${destSlot}`);
+                destEl.innerText = teamName;
+                // Remove estilos antigos se mudou o vencedor anterior
+                destEl.classList.remove('winner', 'loser');
+                
+                // Limpa o caminho futuro se houver mudança (para evitar inconsistência)
+                clearFuturePath(destRound, destMatchId, destSlot);
+            } else {
+                // Final é tratada diferente pois ID não é numérico no meu HTML
+                const destEl = document.getElementById(`final-t${destSlot}`);
+                destEl.innerText = teamName;
+                destEl.classList.remove('winner', 'loser');
+                resetChampion();
+            }
+        }
+
+        // Limpa fases futuras se o usuário mudar um resultado anterior
+        function clearFuturePath(round, matchId, slot) {
+            // Lógica simplificada: Se mudou QF, limpa SF e Final correspondente
+            // Para este exemplo, apenas removemos classes winner/loser do próximo slot para forçar nova escolha
+            // Uma implementação completa recursiva seria muito complexa para um único arquivo simples.
+        }
+
+        function selectWinner(round, teamIndex) {
+             // Wrapper para a final usar a mesma lógica visual
+             const t1 = document.getElementById('final-t1');
+             const t2 = document.getElementById('final-t2');
+             
+             if(t1.innerText === '' || t2.innerText === '') return;
+
+             const winnerName = teamIndex === 1 ? t1.innerText : t2.innerText;
+             
+             t1.classList.remove('winner', 'loser');
+             t2.classList.remove('winner', 'loser');
+
+             if(teamIndex === 1) {
+                 t1.classList.add('winner');
+                 t2.classList.add('loser');
+             } else {
+                 t2.classList.add('winner');
+                 t1.classList.add('loser');
+             }
+             
+             declareChampion(winnerName);
+        }
+
+        function declareChampion(name) {
+            const box = document.getElementById('champion-box');
+            const nameEl = document.getElementById('champion-name');
+            
+            box.classList.add('winner-active');
+            nameEl.innerText = name;
+            nameEl.classList.add('visible');
+            
+            startConfetti();
+        }
+
+        function resetChampion() {
+            const box = document.getElementById('champion-box');
+            const nameEl = document.getElementById('champion-name');
+            box.classList.remove('winner-active');
+            nameEl.classList.remove('visible');
+            nameEl.innerText = "?";
+            stopConfetti();
+        }
+
+        function resetTournament() {
+            // Recarrega a página ou limpa tudo manualmente
+            location.reload(); 
+        }
+
+        // --- Confetti Effect (Simple Implementation) ---
+        let confettiInterval;
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function startConfetti() {
+            if (confettiInterval) return;
+            particles = [];
+            for(let i=0; i<150; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    vx: Math.random() * 4 - 2,
+                    vy: Math.random() * 4 + 2,
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                    size: Math.random() * 6 + 2
+                });
+            }
+            confettiInterval = setInterval(drawConfetti, 1000/60);
+        }
+
+        function stopConfetti() {
+            clearInterval(confettiInterval);
+            confettiInterval = null;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                if(p.y > canvas.height) p.y = -10;
+                
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            });
+        }
+
+        // Iniciar
+        init();
+
+    </script>
 </body>
 </html>
+
